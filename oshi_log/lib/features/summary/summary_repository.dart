@@ -117,4 +117,26 @@ class SummaryRepository {
     }
     return result;
   }
+
+  /// 推しのイベント参加回数
+  Future<int> getOshiEventCount(int oshiId) async {
+    final rows = await (_db.select(_db.events)
+          ..where((t) => t.oshiId.equals(oshiId)))
+        .get();
+    return rows.length;
+  }
+
+  /// 推しのグッズ購入点数（数量合計）
+  Future<int> getOshiGoodsCount(int oshiId) async {
+    final rows = await (_db.select(_db.goods)
+          ..where((t) => t.oshiId.equals(oshiId)))
+        .get();
+    return rows.fold<int>(0, (sum, g) => sum + g.quantity);
+  }
+
+  /// 全推し一覧（サマリー推しタブ用）
+  Future<List<Oshi>> getAllOshis() =>
+      (_db.select(_db.oshis)
+            ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+          .get();
 }

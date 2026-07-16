@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/utils/format_utils.dart';
+import '../../../shared/widgets/oshi_icon.dart';
 import '../summary_providers.dart';
 import '../summary_repository.dart';
 
@@ -12,7 +13,7 @@ class SummaryPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('支出サマリー'),
@@ -20,6 +21,7 @@ class SummaryPage extends ConsumerWidget {
             tabs: [
               Tab(text: '月次'),
               Tab(text: '年次'),
+              Tab(text: '推しごと'),
             ],
           ),
         ),
@@ -27,6 +29,7 @@ class SummaryPage extends ConsumerWidget {
           children: [
             _MonthlyTab(),
             _YearlyTab(),
+            _OshiTab(),
           ],
         ),
       ),
@@ -362,6 +365,283 @@ class _YearlyBarChart extends StatelessWidget {
                     style: const TextStyle(fontSize: 10),
                   );
                 },
+              ),
+            ),
+            rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          gridData: const FlGridData(show: true),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 推しごとタブ
+// ---------------------------------------------------------------------------
+
+class _OshiTab extends ConsumerWidget {
+  const _OshiTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final oshisAsync = ref.watch(allOshisForSummaryProvider);
+    final selectedId = ref.watch(selectedOshiIdProvider);
+    final year = ref.watch(selectedYearProvider);
+
+    return oshisAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('エラー: $e')),
+      data: (oshis) {
+        if (oshis.isEmpty) {
+          return const _NoDataView(message: '推しが登録されていません');
+        }
+
+        // 選択中の推し（初回は先頭）
+        final effectiveId = selectedId ?? oshis.first.id;
+        final selectedOshi = oshis.firstWhere(
+          (o) => o.id == effectiveId,
+          orElse: () => oshis.first,
+        );
+        final color = Color(selectedOshi.coverColor);
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // 推しドロップダウン
+            DropdownButtonFormField<int>(
+              value: effectiveId,
+              decoration: const InputDecoration(
+                labelText: '推しを選択',
+                border: OutlineInputBorder(),
+              ),
+              items: oshis
+                  .map((o) => DropdownMenuItem(
+                        value: o.id,
+                        child: Row(
+                          children: [
+                            OshiCircleAvatar(
+                              iconPath: o.iconPath,
+                              name: o.name,
+                              coverColor: Color(o.coverColor),
+                              radius: 14,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(o.name),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+              onChanged: (id) {
+                if (id != null) {
+                  ref.read(selectedOshiIdProvider.notifier).state = id;
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // 累計支出
+            Consumer(builder: (context, ref, _) {
+              final totalAsync =
+                  ref.watch(oshiTotalProvider);
+              return totalAsync.when(
+                loading: () => const CircularProgressIndicator(),
+                error: (e, _) => Text('エラー: $e'),
+                data: (total) => _TotalCard(
+                  label: '${selectedOshi.name} への累計支出',
+                  amount: total ?? 0,
+                ),
+              );
+            }),
+            const SizedBox(height: 20),
+
+            // 統計カード
+            Consumer(builder: (context, ref, _) {
+              final eventCountAsync = ref.watch(oshiEventCountProvider);
+              final goodsCountAsync = ref.watch(oshiGoodsCountProvider);
+              return Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      label: 'イベント参加',
+                      valueAsync: eventCountAsync,
+                      unit: '回',
+                      icon: Icons.event,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'グッズ購入',
+                      valueAsync: goodsCountAsync,
+                      unit: '点',
+                      icon: Icons.shopping_bag,
+                      color: color,
+                    ),
+                  ),
+                ],
+              );
+            }),
+            const SizedBox(height: 24),
+
+            // 年セレクター + 月別推移グラフ
+            _YearSelector(year: year),
+            const SizedBox(height: 12),
+            Consumer(builder: (context, ref, _) {
+              final monthlyAsync = ref.watch(oshiMonthlyProvider);
+              return monthlyAsync.when(
+                loading: () => const Center(
+                    child: CircularProgressIndicator()),
+                error: (e, _) => Text('エラー: $e'),
+                data: (monthly) {
+                  if (monthly == null) return const SizedBox.shrink();
+                  final total =
+                      monthly.fold<int>(0, (s, v) => s + v);
+                  if (total == 0) {
+                    return const _NoDataView(
+                        message: 'この年の支出はありません');
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('$year年の月別支出推移',
+                          style:
+                              Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 12),
+                      _OshiLineChart(
+                          monthly: monthly, color: color),
+                    ],
+                  );
+                },
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 統計カード（イベント参加回数・グッズ購入点数）
+class _StatCard extends StatelessWidget {
+  final String label;
+  final AsyncValue<int?> valueAsync;
+  final String unit;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.valueAsync,
+    required this.unit,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 4),
+                Text(label,
+                    style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+            const SizedBox(height: 8),
+            valueAsync.when(
+              loading: () =>
+                  const SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
+              error: (e, _) => const Text('-'),
+              data: (v) => Text(
+                '${v ?? 0} $unit',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 推しの月別支出折れ線グラフ
+class _OshiLineChart extends StatelessWidget {
+  final List<int> monthly;
+  final Color color;
+  const _OshiLineChart({required this.monthly, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final maxVal = monthly.reduce((a, b) => a > b ? a : b).toDouble();
+    final effectiveMax = maxVal == 0 ? 1000.0 : maxVal * 1.2;
+
+    final spots = monthly.asMap().entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value.toDouble()))
+        .toList();
+
+    return SizedBox(
+      height: 220,
+      child: LineChart(
+        LineChartData(
+          maxY: effectiveMax,
+          minY: 0,
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: color,
+              barWidth: 2.5,
+              dotData: FlDotData(
+                getDotPainter: (spot, percent, bar, index) =>
+                    FlDotCirclePainter(
+                  radius: 4,
+                  color: color,
+                  strokeWidth: 0,
+                ),
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                color: color.withValues(alpha: 0.15),
+              ),
+            ),
+          ],
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 48,
+                getTitlesWidget: (value, meta) {
+                  if (value == 0) return const SizedBox.shrink();
+                  return Text(
+                    '¥${formatAmount(value.toInt())}',
+                    style: const TextStyle(fontSize: 9),
+                  );
+                },
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) => Text(
+                  '${value.toInt() + 1}月',
+                  style: const TextStyle(fontSize: 10),
+                ),
               ),
             ),
             rightTitles: const AxisTitles(

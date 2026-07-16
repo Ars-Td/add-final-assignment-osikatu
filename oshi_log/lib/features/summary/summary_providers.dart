@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shared/database/app_database.dart';
 import '../../shared/database/database_provider.dart';
 import 'summary_repository.dart';
 
@@ -41,4 +42,43 @@ final yearlyMonthlyProvider =
   final repo = ref.watch(summaryRepositoryProvider);
   final year = ref.watch(selectedYearProvider);
   return repo.getYearlyMonthly(year);
+});
+
+// --- 推しごとサマリー ---
+
+/// 選択中の推し ID（null = 未選択）
+final selectedOshiIdProvider = StateProvider<int?>((ref) => null);
+
+/// 全推し一覧（推しタブのドロップダウン用）
+final allOshisForSummaryProvider = FutureProvider<List<Oshi>>((ref) {
+  return ref.watch(summaryRepositoryProvider).getAllOshis();
+});
+
+/// 選択中の推しへの累計支出
+final oshiTotalProvider = FutureProvider<int?>((ref) async {
+  final id = ref.watch(selectedOshiIdProvider);
+  if (id == null) return null;
+  return ref.watch(summaryRepositoryProvider).getOshiTotal(id);
+});
+
+/// 選択中の推しの年間月別支出
+final oshiMonthlyProvider = FutureProvider<List<int>?>((ref) async {
+  final id = ref.watch(selectedOshiIdProvider);
+  final year = ref.watch(selectedYearProvider);
+  if (id == null) return null;
+  return ref.watch(summaryRepositoryProvider).getOshiMonthly(id, year);
+});
+
+/// 選択中の推しのイベント参加回数
+final oshiEventCountProvider = FutureProvider<int?>((ref) async {
+  final id = ref.watch(selectedOshiIdProvider);
+  if (id == null) return null;
+  return ref.watch(summaryRepositoryProvider).getOshiEventCount(id);
+});
+
+/// 選択中の推しのグッズ購入点数
+final oshiGoodsCountProvider = FutureProvider<int?>((ref) async {
+  final id = ref.watch(selectedOshiIdProvider);
+  if (id == null) return null;
+  return ref.watch(summaryRepositoryProvider).getOshiGoodsCount(id);
 });
