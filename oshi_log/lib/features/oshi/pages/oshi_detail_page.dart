@@ -9,13 +9,31 @@ import '../../goods/widgets/goods_list_tab.dart';
 import '../../saving/widgets/saving_list_tab.dart';
 import '../oshi_providers.dart';
 
-class OshiDetailPage extends ConsumerWidget {
+class OshiDetailPage extends ConsumerStatefulWidget {
   final int oshiId;
   const OshiDetailPage({super.key, required this.oshiId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final oshiAsync = ref.watch(oshiByIdProvider(oshiId));
+  ConsumerState<OshiDetailPage> createState() => _OshiDetailPageState();
+}
+
+class _OshiDetailPageState extends ConsumerState<OshiDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    // ページ表示時に lastViewedAt を更新し、最近閲覧順ソートを機能させる
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref
+          .read(oshiRepositoryProvider)
+          .touchLastViewed(widget.oshiId);
+      // 一覧 Provider を invalidate して最近閲覧順に反映
+      ref.invalidate(oshiListProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final oshiAsync = ref.watch(oshiByIdProvider(widget.oshiId));
 
     return oshiAsync.when(
       loading: () => const Scaffold(
@@ -50,17 +68,18 @@ class OshiDetailPage extends ConsumerWidget {
                       icon: const Icon(Icons.more_vert, color: Colors.white),
                       onSelected: (v) async {
                         if (v == 'edit') {
-                          context.push('/oshi/$oshiId/edit');
+                          context.push('/oshi/${widget.oshiId}/edit');
                         } else if (v == 'delete') {
                           final ok = await showConfirmDialog(
                             context: context,
                             title: '推しを削除',
-                            content: 'この推しとすべての関連データが削除されます。よろしいですか？',
+                            content:
+                                'この推しとすべての関連データが削除されます。よろしいですか？',
                           );
                           if (ok == true && context.mounted) {
                             await ref
                                 .read(oshiRepositoryProvider)
-                                .deleteOshi(oshiId);
+                                .deleteOshi(widget.oshiId);
                             if (context.mounted) context.pop();
                           }
                         }
@@ -69,8 +88,8 @@ class OshiDetailPage extends ConsumerWidget {
                         PopupMenuItem(value: 'edit', child: Text('編集')),
                         PopupMenuItem(
                           value: 'delete',
-                          child:
-                              Text('削除', style: TextStyle(color: Colors.red)),
+                          child: Text('削除',
+                              style: TextStyle(color: Colors.red)),
                         ),
                       ],
                     ),
@@ -139,9 +158,9 @@ class OshiDetailPage extends ConsumerWidget {
               ],
               body: TabBarView(
                 children: [
-                  EventListTab(oshiId: oshiId),
-                  GoodsListTab(oshiId: oshiId),
-                  SavingListTab(oshiId: oshiId),
+                  EventListTab(oshiId: widget.oshiId),
+                  GoodsListTab(oshiId: widget.oshiId),
+                  SavingListTab(oshiId: widget.oshiId),
                 ],
               ),
             ),
@@ -150,5 +169,4 @@ class OshiDetailPage extends ConsumerWidget {
       },
     );
   }
-
 }
