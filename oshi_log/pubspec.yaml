@@ -31,6 +31,9 @@ dependencies:
 
   # 通知（Web は UI バナー代替）
   flutter_local_notifications: ^18.0.1
+  # タイムゾーン（スケジュール通知に必要）
+  timezone: ^0.9.4
+  flutter_timezone: ^1.0.4
 
   # カラーピッカー
   flutter_colorpicker: ^1.1.0

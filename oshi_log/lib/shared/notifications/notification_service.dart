@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 
 /// 通知サービス（シングルトン）
 ///
@@ -16,8 +19,13 @@ class NotificationService {
 
   /// アプリ起動時に一度だけ呼ぶ
   Future<void> initialize() async {
-    if (kIsWeb) return; // Web は不要
+    if (kIsWeb) return;
     if (_initialized) return;
+
+    // タイムゾーンデータを初期化
+    tz_data.initializeTimeZones();
+    final tzName = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(tzName));
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -45,11 +53,11 @@ class NotificationService {
       final granted = await android.requestNotificationsPermission();
       return granted ?? false;
     }
-    return true; // iOS は initialize 時に許可ダイアログが出る
+    return true;
   }
 
   // ---------------------------------------------------------------------------
-  // 即時通知（ネイティブのみ）
+  // 通知チャンネル設定
   // ---------------------------------------------------------------------------
 
   static const _androidDetails = AndroidNotificationDetails(
@@ -59,8 +67,11 @@ class NotificationService {
     importance: Importance.high,
     priority: Priority.high,
   );
-  static const _details =
-      NotificationDetails(android: _androidDetails);
+  static const _details = NotificationDetails(android: _androidDetails);
+
+  // ---------------------------------------------------------------------------
+  // 即時通知
+  // ---------------------------------------------------------------------------
 
   /// 推しの誕生日通知
   Future<void> showBirthdayNotification(String oshiName) async {
@@ -107,16 +118,50 @@ class NotificationService {
   }
 
   // ---------------------------------------------------------------------------
-  // スケジュール通知（ネイティブのみ）
+  // スケジュール通知
   // ---------------------------------------------------------------------------
 
-  /// 毎日指定時刻に貯金リマインダーをスケジュール
+  /// 毎日指定時刻に貯金リマインダーをスケジュール（ネイティブのみ）
+  ///
+  /// [hour] / [minute] はローカルタイムで指定。
   Future<void> scheduleDailySavingReminder(int hour, int minute) async {
     if (kIsWeb) return;
-    // timezone パッケージが必要なため、今回は実装をスキップして
-    // プレースホルダーのみ提供する（本番実装時に timezone を追加）
-    //
-    // await _plugin.zonedSchedule(...)
+    if (!_initialized) await initialize();
+
+    // 既存のリマインダーをキャンセルしてから再スケジュール
+    await _plugin.cancel(10);
+
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+    // 今日の指定時刻が既に過ぎていれば翌日にする
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    await _plugin.zonedSchedule(
+      10,
+      '💰 今日の貯金はお済みですか？',
+      '推しのために、今日も少し積み立てましょう！',
+      scheduled,
+      _details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time, // 毎日繰り返し
+    );
+  }
+
+  /// 貯金リマインダーのスケジュールをキャンセル
+  Future<void> cancelSavingReminder() async {
+    if (kIsWeb) return;
+    await _plugin.cancel(10);
   }
 
   /// 全通知をキャンセル
