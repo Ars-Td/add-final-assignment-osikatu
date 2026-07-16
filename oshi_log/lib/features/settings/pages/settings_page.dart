@@ -5,16 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../main.dart' show themeModeProvider;
 import '../../../shared/database/database_provider.dart';
 import '../../../shared/notifications/notification_service.dart';
+import '../../../shared/services/preferences_service.dart';
 import '../export_service.dart';
 
 // ---------------------------------------------------------------------------
-// 通知設定 Provider（SharedPreferences の代わりに StateProvider で管理）
+// 通知設定 Provider（初期値は main.dart で SharedPreferences から注入）
 // ---------------------------------------------------------------------------
 
 final savingReminderEnabledProvider =
     StateProvider<bool>((ref) => false);
 final savingReminderHourProvider =
-    StateProvider<int>((ref) => 20); // デフォルト 20:00
+    StateProvider<int>((ref) => 20);
 final savingReminderMinuteProvider =
     StateProvider<int>((ref) => 0);
 
@@ -66,24 +67,30 @@ class _ThemeSection extends ConsumerWidget {
           title: const Text('システムに合わせる'),
           value: ThemeMode.system,
           groupValue: current,
-          onChanged: (v) =>
-              ref.read(themeModeProvider.notifier).state = v!,
+          onChanged: (v) async {
+            ref.read(themeModeProvider.notifier).state = v!;
+            await PreferencesService.instance.setThemeMode(v.index);
+          },
           secondary: const Icon(Icons.brightness_auto),
         ),
         RadioListTile<ThemeMode>(
           title: const Text('ライトモード'),
           value: ThemeMode.light,
           groupValue: current,
-          onChanged: (v) =>
-              ref.read(themeModeProvider.notifier).state = v!,
+          onChanged: (v) async {
+            ref.read(themeModeProvider.notifier).state = v!;
+            await PreferencesService.instance.setThemeMode(v.index);
+          },
           secondary: const Icon(Icons.light_mode),
         ),
         RadioListTile<ThemeMode>(
           title: const Text('ダークモード'),
           value: ThemeMode.dark,
           groupValue: current,
-          onChanged: (v) =>
-              ref.read(themeModeProvider.notifier).state = v!,
+          onChanged: (v) async {
+            ref.read(themeModeProvider.notifier).state = v!;
+            await PreferencesService.instance.setThemeMode(v.index);
+          },
           secondary: const Icon(Icons.dark_mode),
         ),
       ],
@@ -112,11 +119,13 @@ class _NotificationSection extends ConsumerWidget {
               ? null // Web は OS スケジュール通知非対応
               : (v) async {
                   ref.read(savingReminderEnabledProvider.notifier).state = v;
+                  await PreferencesService.instance.setReminderEnabled(v);
                   if (v) {
                     await NotificationService.instance
                         .scheduleDailySavingReminder(hour, minute);
                   } else {
-                    await NotificationService.instance.cancelAll();
+                    await NotificationService.instance
+                        .cancelSavingReminder();
                   }
                 },
           secondary: const Icon(Icons.savings),
@@ -148,6 +157,10 @@ class _NotificationSection extends ConsumerWidget {
                     picked.hour;
                 ref.read(savingReminderMinuteProvider.notifier).state =
                     picked.minute;
+                await PreferencesService.instance
+                    .setReminderHour(picked.hour);
+                await PreferencesService.instance
+                    .setReminderMinute(picked.minute);
                 if (enabled) {
                   await NotificationService.instance
                       .scheduleDailySavingReminder(

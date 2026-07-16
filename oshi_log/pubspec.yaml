@@ -35,6 +35,9 @@ dependencies:
   timezone: ^0.9.4
   flutter_timezone: ^1.0.4
 
+  # 設定の永続化
+  shared_preferences: ^2.3.5
+
   # カラーピッカー
   flutter_colorpicker: ^1.1.0
 
