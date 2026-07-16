@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/database/app_database.dart';
 import '../../../shared/utils/format_utils.dart';
+import '../../../shared/utils/photo_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/oshi_icon.dart';
 import '../goods_providers.dart';
 
 class GoodsDetailPage extends ConsumerWidget {
@@ -158,6 +161,9 @@ class GoodsDetailPage extends ConsumerWidget {
                 ),
               ),
 
+              // 写真（photoPaths 優先、なければ旧 imagePath を表示）
+              _GoodsPhotoSection(goods: goods),
+
               // メモ
               if (goods.memo != null && goods.memo!.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -171,6 +177,119 @@ class GoodsDetailPage extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// 写真セクション（旧 imagePath との後方互換あり）
+class _GoodsPhotoSection extends StatelessWidget {
+  final Good goods;
+  const _GoodsPhotoSection({required this.goods});
+
+  @override
+  Widget build(BuildContext context) {
+    // photoPaths 優先、空なら旧 imagePath を移行して表示
+    final paths = decodePhotoPaths(goods.photoPaths).isNotEmpty
+        ? decodePhotoPaths(goods.photoPaths)
+        : (goods.imagePath != null ? [goods.imagePath!] : <String>[]);
+
+    if (paths.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        Text('写真', style: Theme.of(context).textTheme.titleSmall),
+        const Divider(),
+        SizedBox(
+          height: 120,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: paths.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final img = buildOshiIconImage(paths[i]);
+              return GestureDetector(
+                onTap: () => _showFullScreen(context, i, paths),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: img != null
+                      ? Image(
+                          image: img,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          width: 120,
+                          height: 120,
+                          color: Colors.grey.shade200,
+                          child: const Icon(Icons.image, color: Colors.grey),
+                        ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showFullScreen(
+      BuildContext context, int index, List<String> paths) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _FullScreenPage(paths: paths, initialIndex: index),
+    ));
+  }
+}
+
+class _FullScreenPage extends StatefulWidget {
+  final List<String> paths;
+  final int initialIndex;
+  const _FullScreenPage({required this.paths, required this.initialIndex});
+
+  @override
+  State<_FullScreenPage> createState() => _FullScreenPageState();
+}
+
+class _FullScreenPageState extends State<_FullScreenPage> {
+  late final PageController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text('${widget.initialIndex + 1} / ${widget.paths.length}'),
+      ),
+      body: PageView.builder(
+        controller: _ctrl,
+        itemCount: widget.paths.length,
+        itemBuilder: (context, i) {
+          final img = buildOshiIconImage(widget.paths[i]);
+          return InteractiveViewer(
+            child: Center(
+              child: img != null
+                  ? Image(image: img, fit: BoxFit.contain)
+                  : const Icon(Icons.image, color: Colors.grey, size: 80),
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -53,7 +53,10 @@ class Goods extends Table {
   IntColumn get amount => integer()();
   TextColumn get shop => text().nullable()();
   IntColumn get quantity => integer().withDefault(const Constant(1))();
+  /// 後方互換のため残存（v3以前のデータ用）
   TextColumn get imagePath => text().nullable()();
+  /// 写真パスの JSON 配列（例: '["path1","path2"]'）。null = 写真なし
+  TextColumn get photoPaths => text().nullable()();
   TextColumn get memo => text().nullable()();
   TextColumn get createdAt => text()();
 }

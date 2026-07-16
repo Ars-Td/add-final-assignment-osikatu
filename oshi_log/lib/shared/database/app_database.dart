@@ -24,7 +24,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -39,6 +39,10 @@ class AppDatabase extends _$AppDatabase {
           // 既存 DB では制約変更は DDL で反映されない。
           // 代わりに PRAGMA foreign_keys=ON で外部キーを有効化し、
           // アプリコード側でのカスケード削除を組み合わせる。
+          if (from < 4) {
+            // v3 → v4: goods テーブルに photoPaths カラムを追加
+            await m.addColumn(goods, goods.photoPaths);
+          }
         },
         beforeOpen: (details) async {
           // 外部キー制約を有効化（SQLite はデフォルト OFF）

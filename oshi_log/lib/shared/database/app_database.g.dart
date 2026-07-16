@@ -1601,6 +1601,17 @@ class $GoodsTable extends Goods with TableInfo<$GoodsTable, Good> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _photoPathsMeta = const VerificationMeta(
+    'photoPaths',
+  );
+  @override
+  late final GeneratedColumn<String> photoPaths = GeneratedColumn<String>(
+    'photo_paths',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _memoMeta = const VerificationMeta('memo');
   @override
   late final GeneratedColumn<String> memo = GeneratedColumn<String>(
@@ -1632,6 +1643,7 @@ class $GoodsTable extends Goods with TableInfo<$GoodsTable, Good> {
     shop,
     quantity,
     imagePath,
+    photoPaths,
     memo,
     createdAt,
   ];
@@ -1711,6 +1723,12 @@ class $GoodsTable extends Goods with TableInfo<$GoodsTable, Good> {
         imagePath.isAcceptableOrUnknown(data['image_path']!, _imagePathMeta),
       );
     }
+    if (data.containsKey('photo_paths')) {
+      context.handle(
+        _photoPathsMeta,
+        photoPaths.isAcceptableOrUnknown(data['photo_paths']!, _photoPathsMeta),
+      );
+    }
     if (data.containsKey('memo')) {
       context.handle(
         _memoMeta,
@@ -1770,6 +1788,10 @@ class $GoodsTable extends Goods with TableInfo<$GoodsTable, Good> {
         DriftSqlType.string,
         data['${effectivePrefix}image_path'],
       ),
+      photoPaths: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_paths'],
+      ),
       memo: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}memo'],
@@ -1796,7 +1818,12 @@ class Good extends DataClass implements Insertable<Good> {
   final int amount;
   final String? shop;
   final int quantity;
+
+  /// 後方互換のため残存（v3以前のデータ用）
   final String? imagePath;
+
+  /// 写真パスの JSON 配列（例: '["path1","path2"]'）。null = 写真なし
+  final String? photoPaths;
   final String? memo;
   final String createdAt;
   const Good({
@@ -1809,6 +1836,7 @@ class Good extends DataClass implements Insertable<Good> {
     this.shop,
     required this.quantity,
     this.imagePath,
+    this.photoPaths,
     this.memo,
     required this.createdAt,
   });
@@ -1827,6 +1855,9 @@ class Good extends DataClass implements Insertable<Good> {
     map['quantity'] = Variable<int>(quantity);
     if (!nullToAbsent || imagePath != null) {
       map['image_path'] = Variable<String>(imagePath);
+    }
+    if (!nullToAbsent || photoPaths != null) {
+      map['photo_paths'] = Variable<String>(photoPaths);
     }
     if (!nullToAbsent || memo != null) {
       map['memo'] = Variable<String>(memo);
@@ -1848,6 +1879,9 @@ class Good extends DataClass implements Insertable<Good> {
       imagePath: imagePath == null && nullToAbsent
           ? const Value.absent()
           : Value(imagePath),
+      photoPaths: photoPaths == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoPaths),
       memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
       createdAt: Value(createdAt),
     );
@@ -1868,6 +1902,7 @@ class Good extends DataClass implements Insertable<Good> {
       shop: serializer.fromJson<String?>(json['shop']),
       quantity: serializer.fromJson<int>(json['quantity']),
       imagePath: serializer.fromJson<String?>(json['imagePath']),
+      photoPaths: serializer.fromJson<String?>(json['photoPaths']),
       memo: serializer.fromJson<String?>(json['memo']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
     );
@@ -1885,6 +1920,7 @@ class Good extends DataClass implements Insertable<Good> {
       'shop': serializer.toJson<String?>(shop),
       'quantity': serializer.toJson<int>(quantity),
       'imagePath': serializer.toJson<String?>(imagePath),
+      'photoPaths': serializer.toJson<String?>(photoPaths),
       'memo': serializer.toJson<String?>(memo),
       'createdAt': serializer.toJson<String>(createdAt),
     };
@@ -1900,6 +1936,7 @@ class Good extends DataClass implements Insertable<Good> {
     Value<String?> shop = const Value.absent(),
     int? quantity,
     Value<String?> imagePath = const Value.absent(),
+    Value<String?> photoPaths = const Value.absent(),
     Value<String?> memo = const Value.absent(),
     String? createdAt,
   }) => Good(
@@ -1912,6 +1949,7 @@ class Good extends DataClass implements Insertable<Good> {
     shop: shop.present ? shop.value : this.shop,
     quantity: quantity ?? this.quantity,
     imagePath: imagePath.present ? imagePath.value : this.imagePath,
+    photoPaths: photoPaths.present ? photoPaths.value : this.photoPaths,
     memo: memo.present ? memo.value : this.memo,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -1928,6 +1966,9 @@ class Good extends DataClass implements Insertable<Good> {
       shop: data.shop.present ? data.shop.value : this.shop,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
+      photoPaths: data.photoPaths.present
+          ? data.photoPaths.value
+          : this.photoPaths,
       memo: data.memo.present ? data.memo.value : this.memo,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -1945,6 +1986,7 @@ class Good extends DataClass implements Insertable<Good> {
           ..write('shop: $shop, ')
           ..write('quantity: $quantity, ')
           ..write('imagePath: $imagePath, ')
+          ..write('photoPaths: $photoPaths, ')
           ..write('memo: $memo, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -1962,6 +2004,7 @@ class Good extends DataClass implements Insertable<Good> {
     shop,
     quantity,
     imagePath,
+    photoPaths,
     memo,
     createdAt,
   );
@@ -1978,6 +2021,7 @@ class Good extends DataClass implements Insertable<Good> {
           other.shop == this.shop &&
           other.quantity == this.quantity &&
           other.imagePath == this.imagePath &&
+          other.photoPaths == this.photoPaths &&
           other.memo == this.memo &&
           other.createdAt == this.createdAt);
 }
@@ -1992,6 +2036,7 @@ class GoodsCompanion extends UpdateCompanion<Good> {
   final Value<String?> shop;
   final Value<int> quantity;
   final Value<String?> imagePath;
+  final Value<String?> photoPaths;
   final Value<String?> memo;
   final Value<String> createdAt;
   const GoodsCompanion({
@@ -2004,6 +2049,7 @@ class GoodsCompanion extends UpdateCompanion<Good> {
     this.shop = const Value.absent(),
     this.quantity = const Value.absent(),
     this.imagePath = const Value.absent(),
+    this.photoPaths = const Value.absent(),
     this.memo = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -2017,6 +2063,7 @@ class GoodsCompanion extends UpdateCompanion<Good> {
     this.shop = const Value.absent(),
     this.quantity = const Value.absent(),
     this.imagePath = const Value.absent(),
+    this.photoPaths = const Value.absent(),
     this.memo = const Value.absent(),
     required String createdAt,
   }) : oshiId = Value(oshiId),
@@ -2035,6 +2082,7 @@ class GoodsCompanion extends UpdateCompanion<Good> {
     Expression<String>? shop,
     Expression<int>? quantity,
     Expression<String>? imagePath,
+    Expression<String>? photoPaths,
     Expression<String>? memo,
     Expression<String>? createdAt,
   }) {
@@ -2048,6 +2096,7 @@ class GoodsCompanion extends UpdateCompanion<Good> {
       if (shop != null) 'shop': shop,
       if (quantity != null) 'quantity': quantity,
       if (imagePath != null) 'image_path': imagePath,
+      if (photoPaths != null) 'photo_paths': photoPaths,
       if (memo != null) 'memo': memo,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -2063,6 +2112,7 @@ class GoodsCompanion extends UpdateCompanion<Good> {
     Value<String?>? shop,
     Value<int>? quantity,
     Value<String?>? imagePath,
+    Value<String?>? photoPaths,
     Value<String?>? memo,
     Value<String>? createdAt,
   }) {
@@ -2076,6 +2126,7 @@ class GoodsCompanion extends UpdateCompanion<Good> {
       shop: shop ?? this.shop,
       quantity: quantity ?? this.quantity,
       imagePath: imagePath ?? this.imagePath,
+      photoPaths: photoPaths ?? this.photoPaths,
       memo: memo ?? this.memo,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -2111,6 +2162,9 @@ class GoodsCompanion extends UpdateCompanion<Good> {
     if (imagePath.present) {
       map['image_path'] = Variable<String>(imagePath.value);
     }
+    if (photoPaths.present) {
+      map['photo_paths'] = Variable<String>(photoPaths.value);
+    }
     if (memo.present) {
       map['memo'] = Variable<String>(memo.value);
     }
@@ -2132,6 +2186,7 @@ class GoodsCompanion extends UpdateCompanion<Good> {
           ..write('shop: $shop, ')
           ..write('quantity: $quantity, ')
           ..write('imagePath: $imagePath, ')
+          ..write('photoPaths: $photoPaths, ')
           ..write('memo: $memo, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -4435,6 +4490,7 @@ typedef $$GoodsTableCreateCompanionBuilder =
       Value<String?> shop,
       Value<int> quantity,
       Value<String?> imagePath,
+      Value<String?> photoPaths,
       Value<String?> memo,
       required String createdAt,
     });
@@ -4449,6 +4505,7 @@ typedef $$GoodsTableUpdateCompanionBuilder =
       Value<String?> shop,
       Value<int> quantity,
       Value<String?> imagePath,
+      Value<String?> photoPaths,
       Value<String?> memo,
       Value<String> createdAt,
     });
@@ -4520,6 +4577,11 @@ class $$GoodsTableFilterComposer extends Composer<_$AppDatabase, $GoodsTable> {
 
   ColumnFilters<String> get imagePath => $composableBuilder(
     column: $table.imagePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photoPaths => $composableBuilder(
+    column: $table.photoPaths,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4606,6 +4668,11 @@ class $$GoodsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get photoPaths => $composableBuilder(
+    column: $table.photoPaths,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get memo => $composableBuilder(
     column: $table.memo,
     builder: (column) => ColumnOrderings(column),
@@ -4675,6 +4742,11 @@ class $$GoodsTableAnnotationComposer
   GeneratedColumn<String> get imagePath =>
       $composableBuilder(column: $table.imagePath, builder: (column) => column);
 
+  GeneratedColumn<String> get photoPaths => $composableBuilder(
+    column: $table.photoPaths,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get memo =>
       $composableBuilder(column: $table.memo, builder: (column) => column);
 
@@ -4742,6 +4814,7 @@ class $$GoodsTableTableManager
                 Value<String?> shop = const Value.absent(),
                 Value<int> quantity = const Value.absent(),
                 Value<String?> imagePath = const Value.absent(),
+                Value<String?> photoPaths = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
               }) => GoodsCompanion(
@@ -4754,6 +4827,7 @@ class $$GoodsTableTableManager
                 shop: shop,
                 quantity: quantity,
                 imagePath: imagePath,
+                photoPaths: photoPaths,
                 memo: memo,
                 createdAt: createdAt,
               ),
@@ -4768,6 +4842,7 @@ class $$GoodsTableTableManager
                 Value<String?> shop = const Value.absent(),
                 Value<int> quantity = const Value.absent(),
                 Value<String?> imagePath = const Value.absent(),
+                Value<String?> photoPaths = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 required String createdAt,
               }) => GoodsCompanion.insert(
@@ -4780,6 +4855,7 @@ class $$GoodsTableTableManager
                 shop: shop,
                 quantity: quantity,
                 imagePath: imagePath,
+                photoPaths: photoPaths,
                 memo: memo,
                 createdAt: createdAt,
               ),
