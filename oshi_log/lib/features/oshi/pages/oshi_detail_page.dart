@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/widgets/confirm_dialog.dart';
-import '../../../shared/widgets/empty_state_view.dart';
 import '../../event/widgets/event_list_tab.dart';
 import '../../goods/widgets/goods_list_tab.dart';
+import '../../saving/widgets/saving_list_tab.dart';
 import '../oshi_providers.dart';
 
 class OshiDetailPage extends ConsumerWidget {
@@ -142,13 +142,7 @@ class OshiDetailPage extends ConsumerWidget {
                 children: [
                   EventListTab(oshiId: oshiId),
                   GoodsListTab(oshiId: oshiId),
-                  EmptyStateView(
-                    icon: Icons.savings_outlined,
-                    message: '貯金プランはまだありません',
-                    actionLabel: '貯金プランを追加',
-                    onAction: () =>
-                        context.push('/oshi/$oshiId/saving/new'),
-                  ),
+                  SavingListTab(oshiId: oshiId),
                 ],
               ),
             ),
