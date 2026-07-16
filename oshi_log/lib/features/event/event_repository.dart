@@ -16,6 +16,13 @@ class EventRepository {
             ..orderBy([(t) => OrderingTerm.desc(t.date)]))
           .get();
 
+  /// 推しに紐づくイベント一覧（古い順）
+  Future<List<Event>> getEventsByOshiOldFirst(int oshiId) =>
+      (_db.select(_db.events)
+            ..where((t) => t.oshiId.equals(oshiId))
+            ..orderBy([(t) => OrderingTerm.asc(t.date)]))
+          .get();
+
   /// 月フィルタ（YYYY-MM プレフィックスで絞り込み）
   Future<List<Event>> getEventsByMonth(int oshiId, int year, int month) {
     final prefix =
