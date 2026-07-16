@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../event/widgets/event_list_tab.dart';
+import '../../goods/widgets/goods_list_tab.dart';
 import '../oshi_providers.dart';
 
 class OshiDetailPage extends ConsumerWidget {
@@ -140,13 +141,7 @@ class OshiDetailPage extends ConsumerWidget {
               body: TabBarView(
                 children: [
                   EventListTab(oshiId: oshiId),
-                  EmptyStateView(
-                    icon: Icons.shopping_bag_outlined,
-                    message: 'グッズはまだありません',
-                    actionLabel: 'グッズを追加',
-                    onAction: () =>
-                        context.push('/oshi/$oshiId/goods/new'),
-                  ),
+                  GoodsListTab(oshiId: oshiId),
                   EmptyStateView(
                     icon: Icons.savings_outlined,
                     message: '貯金プランはまだありません',
