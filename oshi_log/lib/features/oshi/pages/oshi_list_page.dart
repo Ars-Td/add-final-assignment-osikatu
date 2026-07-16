@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/database/app_database.dart';
+import '../../../shared/widgets/oshi_icon.dart';
 import '../oshi_providers.dart';
 
 class OshiListPage extends ConsumerWidget {
@@ -86,22 +87,11 @@ class _OshiCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             // アイコン
-            CircleAvatar(
+            OshiCircleAvatar(
+              iconPath: oshi.iconPath,
+              name: oshi.name,
+              coverColor: color,
               radius: 28,
-              backgroundColor: color.withValues(alpha: 0.2),
-              backgroundImage: oshi.iconPath != null
-                  ? AssetImage(oshi.iconPath!) as ImageProvider
-                  : null,
-              child: oshi.iconPath == null
-                  ? Text(
-                      oshi.name.isNotEmpty ? oshi.name[0] : '?',
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    )
-                  : null,
             ),
             const SizedBox(width: 12),
             // 名前・カテゴリ

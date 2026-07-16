@@ -1,11 +1,9 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/oshi_icon.dart';
 import '../../event/widgets/event_list_tab.dart';
 import '../../goods/widgets/goods_list_tab.dart';
 import '../../saving/widgets/saving_list_tab.dart';
@@ -93,7 +91,8 @@ class OshiDetailPage extends ConsumerWidget {
                             CircleAvatar(
                               radius: 48,
                               backgroundColor: Colors.white24,
-                              backgroundImage: _buildIconImage(oshi.iconPath),
+                              backgroundImage:
+                                  buildOshiIconImage(oshi.iconPath),
                               child: oshi.iconPath == null
                                   ? Text(
                                       oshi.name.isNotEmpty
@@ -152,9 +151,4 @@ class OshiDetailPage extends ConsumerWidget {
     );
   }
 
-  ImageProvider? _buildIconImage(String? path) {
-    if (path == null) return null;
-    if (kIsWeb) return null;
-    return FileImage(File(path));
-  }
 }

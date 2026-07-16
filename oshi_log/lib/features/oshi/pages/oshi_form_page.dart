@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -10,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/database/app_database.dart';
 import '../../../shared/widgets/app_bar_loading_indicator.dart';
+import '../../../shared/widgets/oshi_icon.dart';
 import '../oshi_providers.dart';
 
 const _categories = ['アイドル', '俳優', 'VTuber', 'アニメ', 'その他'];
@@ -178,7 +177,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
                   CircleAvatar(
                     radius: 48,
                     backgroundColor: _coverColor.withValues(alpha: 0.2),
-                    backgroundImage: _buildIconImage(),
+                    backgroundImage: buildOshiIconImage(_iconPath),
                     child: _iconPath == null
                         ? Icon(Icons.person, size: 48, color: _coverColor)
                         : null,
@@ -300,9 +299,4 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
     );
   }
 
-  ImageProvider? _buildIconImage() {
-    if (_iconPath == null) return null;
-    if (kIsWeb) return null; // Web では File 非対応
-    return FileImage(File(_iconPath!));
-  }
 }
