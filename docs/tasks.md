@@ -18,11 +18,11 @@
 
 ### 0-2. パッケージ導入（pubspec.yaml）
 - [ ] 状態管理: `flutter_riverpod`
-- [ ] ローカル DB: `sqflite` + `path`
+- [ ] ローカル DB: `drift` + `drift_dev` + `sqlite3_flutter_libs` + `drift/wasm`（Web 向け）
 - [ ] ナビゲーション: `go_router`
 - [ ] グラフ描画: `fl_chart`
 - [ ] 画像選択: `image_picker`
-- [ ] 通知: `flutter_local_notifications`
+- [ ] 通知: `flutter_local_notifications`（Web は `kIsWeb` で UI バナー代替）
 - [ ] カラーピッカー: `flutter_colorpicker`
 - [ ] CSVエクスポート: `csv`
 - [ ] アイコン: `font_awesome_flutter`
@@ -44,14 +44,15 @@
 - [ ] `SavingPlan`（貯金プラン）モデルの作成
 - [ ] `SavingRecord`（貯金記録）モデルの作成
 
-### 1-2. DB 初期化・テーブル作成
-- [ ] `DatabaseHelper` クラスの作成（SQLite 接続・バージョン管理）
-- [ ] `oshi` テーブルの DDL 作成・マイグレーション
-- [ ] `event` テーブルの DDL 作成・マイグレーション
-- [ ] `event_expense` テーブルの DDL 作成・マイグレーション
-- [ ] `goods` テーブルの DDL 作成・マイグレーション
-- [ ] `saving_plan` テーブルの DDL 作成・マイグレーション
-- [ ] `saving_record` テーブルの DDL 作成・マイグレーション
+### 1-2. DB 初期化・テーブル作成（drift）
+- [ ] `AppDatabase` クラスの作成（drift 接続・バージョン管理・Web/非Web 切り替え）
+- [ ] `oshi` テーブルの drift Table クラス作成・マイグレーション
+- [ ] `event` テーブルの drift Table クラス作成・マイグレーション
+- [ ] `event_expense` テーブルの drift Table クラス作成・マイグレーション
+- [ ] `goods` テーブルの drift Table クラス作成・マイグレーション
+- [ ] `saving_plan` テーブルの drift Table クラス作成・マイグレーション
+- [ ] `saving_record` テーブルの drift Table クラス作成・マイグレーション
+- [ ] Web 向け drift/wasm バックエンドの設定（IndexedDB 永続化）
 
 ### 1-3. リポジトリ層の実装
 - [ ] `OshiRepository`（CRUD）の実装
@@ -206,10 +207,12 @@
 ## Phase 8: 通知機能（spec.md §8）
 
 - [ ] `flutter_local_notifications` の初期設定（Android / iOS パーミッション）
-- [ ] 貯金リマインダー通知の実装（毎日指定時間）
-- [ ] 推しの誕生日通知の実装（誕生日当日）
-- [ ] イベント前日リマインド通知の実装
-- [ ] 貯金目標達成通知の実装
+- [ ] `kIsWeb` によるプラットフォーム判定の共通ラッパー実装
+- [ ] 貯金リマインダー通知の実装（毎日指定時間）／Web は画面内バナー代替
+- [ ] 推しの誕生日通知の実装（誕生日当日）／Web は画面内バナー代替
+- [ ] イベント前日リマインド通知の実装／Web は画面内バナー代替
+- [ ] 貯金目標達成通知の実装／Web は画面内バナー代替
+- [ ] Web 向け画面内バナー通知 Widget の実装
 
 ---
 
@@ -241,12 +244,14 @@
 - [ ] 各 Repository のユニットテスト作成
 - [ ] 主要 Provider のユニットテスト作成
 - [ ] ウィジェットテスト（主要画面）
-- [ ] 実機（iOS / Android）での動作確認
+- [ ] Chrome での Web 動作確認
+- [ ] 実機（iOS / Android）での動作確認（Mac 環境準備後）
 
 ### 10-3. リリース準備
 - [ ] アプリアイコンの設定（`flutter_launcher_icons`）
 - [ ] スプラッシュ画面の最終調整
-- [ ] iOS: `Info.plist` 権限設定（カメラ・フォトライブラリ・通知）
+- [ ] Web: `flutter build web` で Release ビルドの確認
+- [ ] iOS: `Info.plist` 権限設定（カメラ・フォトライブラリ・通知）※Mac 環境準備後
 - [ ] Android: `AndroidManifest.xml` 権限設定
 - [ ] `flutter build` で Release ビルドの確認
 

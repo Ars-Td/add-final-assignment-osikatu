@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/empty_state_view.dart';
 import '../../event/widgets/event_list_tab.dart';
 import '../oshi_providers.dart';
 
@@ -51,7 +53,11 @@ class OshiDetailPage extends ConsumerWidget {
                         if (v == 'edit') {
                           context.push('/oshi/$oshiId/edit');
                         } else if (v == 'delete') {
-                          final ok = await _confirmDelete(context);
+                          final ok = await showConfirmDialog(
+                            context: context,
+                            title: '推しを削除',
+                            content: 'この推しとすべての関連データが削除されます。よろしいですか？',
+                          );
                           if (ok == true && context.mounted) {
                             await ref
                                 .read(oshiRepositoryProvider)
@@ -134,14 +140,18 @@ class OshiDetailPage extends ConsumerWidget {
               body: TabBarView(
                 children: [
                   EventListTab(oshiId: oshiId),
-                  _TabPlaceholder(
-                    label: 'グッズ',
-                    onAdd: () =>
+                  EmptyStateView(
+                    icon: Icons.shopping_bag_outlined,
+                    message: 'グッズはまだありません',
+                    actionLabel: 'グッズを追加',
+                    onAction: () =>
                         context.push('/oshi/$oshiId/goods/new'),
                   ),
-                  _TabPlaceholder(
-                    label: '貯金プラン',
-                    onAdd: () =>
+                  EmptyStateView(
+                    icon: Icons.savings_outlined,
+                    message: '貯金プランはまだありません',
+                    actionLabel: '貯金プランを追加',
+                    onAction: () =>
                         context.push('/oshi/$oshiId/saving/new'),
                   ),
                 ],
@@ -157,47 +167,5 @@ class OshiDetailPage extends ConsumerWidget {
     if (path == null) return null;
     if (kIsWeb) return null;
     return FileImage(File(path));
-  }
-
-  Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('推しを削除'),
-          content: const Text('この推しとすべての関連データが削除されます。よろしいですか？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('キャンセル'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('削除', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        ),
-      );
-}
-
-class _TabPlaceholder extends StatelessWidget {
-  final String label;
-  final VoidCallback onAdd;
-  const _TabPlaceholder({required this.label, required this.onAdd});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('$label はまだありません'),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add),
-            label: Text('$labelを追加'),
-          ),
-        ],
-      ),
-    );
   }
 }

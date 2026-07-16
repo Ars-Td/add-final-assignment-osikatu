@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/utils/format_utils.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../event_providers.dart';
 
 class EventDetailPage extends ConsumerWidget {
@@ -40,7 +42,11 @@ class EventDetailPage extends ConsumerWidget {
                   if (v == 'edit') {
                     context.push('/oshi/$oshiId/event/$eventId/edit');
                   } else if (v == 'delete') {
-                    final ok = await _confirmDelete(context);
+                    final ok = await showConfirmDialog(
+                      context: context,
+                      title: 'イベントを削除',
+                      content: 'このイベントを削除しますか？',
+                    );
                     if (ok == true && context.mounted) {
                       await ref
                           .read(eventRepositoryProvider)
@@ -105,7 +111,7 @@ class EventDetailPage extends ConsumerWidget {
                       ),
                       const Spacer(),
                       Text(
-                        '¥${_formatAmount(event.totalAmount)}',
+                        '¥${formatAmount(event.totalAmount)}',
                         style: Theme.of(context)
                             .textTheme
                             .headlineSmall
@@ -135,7 +141,7 @@ class EventDetailPage extends ConsumerWidget {
                       ...expenses.map((e) => ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(e.label),
-                            trailing: Text('¥${_formatAmount(e.amount)}'),
+                             trailing: Text('¥${formatAmount(e.amount)}'),
                           )),
                     ],
                   );
@@ -158,33 +164,6 @@ class EventDetailPage extends ConsumerWidget {
     );
   }
 
-  String _formatAmount(int amount) {
-    final s = amount.toString();
-    final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return buf.toString();
-  }
-
-  Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('イベントを削除'),
-          content: const Text('このイベントを削除しますか？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('キャンセル'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('削除', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        ),
-      );
 }
 
 class _InfoRow extends StatelessWidget {

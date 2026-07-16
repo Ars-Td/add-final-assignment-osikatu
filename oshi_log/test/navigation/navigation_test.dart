@@ -1,10 +1,19 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oshi_log/main.dart';
+import 'package:oshi_log/shared/database/app_database.dart';
+import 'package:oshi_log/shared/database/database_provider.dart';
 
 void main() {
-  Widget buildApp() => const ProviderScope(child: OshiLogApp());
+  Widget buildApp() {
+    final db = AppDatabase(NativeDatabase.memory());
+    return ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(db)],
+      child: const OshiLogApp(),
+    );
+  }
 
   testWidgets('起動時に推し一覧タブが表示される', (tester) async {
     await tester.pumpWidget(buildApp());

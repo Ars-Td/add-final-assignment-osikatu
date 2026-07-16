@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/utils/format_utils.dart';
+import '../../../shared/widgets/empty_state_view.dart';
 import '../event_providers.dart';
 
 /// OshiDetailPage のイベントタブ
@@ -18,22 +20,11 @@ class EventListTab extends ConsumerWidget {
       error: (e, _) => Center(child: Text('エラー: $e')),
       data: (events) {
         if (events.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.event_note, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                const Text('イベントはまだありません'),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      context.push('/oshi/$oshiId/event/new'),
-                  icon: const Icon(Icons.add),
-                  label: const Text('イベントを追加'),
-                ),
-              ],
-            ),
+          return EmptyStateView(
+            icon: Icons.event_note,
+            message: 'イベントはまだありません',
+            actionLabel: 'イベントを追加',
+            onAction: () => context.push('/oshi/$oshiId/event/new'),
           );
         }
 
@@ -66,7 +57,7 @@ class EventListTab extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '¥${_fmt(event.totalAmount)}',
+                          '¥${formatAmount(event.totalAmount)}',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const Icon(Icons.chevron_right, size: 16),
@@ -92,13 +83,4 @@ class EventListTab extends ConsumerWidget {
     );
   }
 
-  String _fmt(int amount) {
-    final s = amount.toString();
-    final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return buf.toString();
-  }
 }

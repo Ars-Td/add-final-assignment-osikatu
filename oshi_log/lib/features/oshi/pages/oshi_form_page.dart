@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/database/app_database.dart';
+import '../../../shared/widgets/app_bar_loading_indicator.dart';
 import '../oshi_providers.dart';
 
 const _categories = ['アイドル', '俳優', 'VTuber', 'アニメ', 'その他'];
@@ -157,13 +158,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
         title: Text(_isEdit ? '推しを編集' : '推しを追加'),
         actions: [
           if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
-            )
+            const AppBarLoadingIndicator()
           else
             TextButton(
               onPressed: _save,

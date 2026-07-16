@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/database/app_database.dart';
+import '../../../shared/widgets/app_bar_loading_indicator.dart';
 import '../event_providers.dart';
 
 const _eventCategories = ['コンサート', '舞台', '握手会', '配信', 'その他'];
@@ -207,14 +208,7 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
         title: Text(_isEdit ? 'イベントを編集' : 'イベントを追加'),
         actions: [
           if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
+            const AppBarLoadingIndicator()
           else
             TextButton(
               onPressed: _save,

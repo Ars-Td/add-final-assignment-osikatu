@@ -2,7 +2,7 @@
 
 **バージョン:** 1.0.0  
 **作成日:** 2026年7月2日  
-**プラットフォーム:** iOS / Android（クロスプラットフォーム）  
+**プラットフォーム:** Web（主軸）/ iOS / Android（クロスプラットフォーム）  
 **技術スタック:** Flutter (Dart)
 
 ---
@@ -155,8 +155,10 @@
 ## 8. データ管理
 
 ### 8.1 ローカルストレージ
-- デフォルトはデバイス内にデータ保存（オフライン動作対応）
-- 使用ライブラリ：`sqflite`（SQLite）または `Hive`（NoSQL）
+- デバイス内にデータ保存（オフライン動作対応）
+- 使用ライブラリ：`drift`（全Platform対応 SQLite ORM）
+  - iOS / Android: SQLite ファイル
+  - Web: drift/wasm バックエンド（IndexedDB に永続化）
 
 ### 8.2 バックアップ・エクスポート
 - CSV 形式でデータエクスポート（支出履歴）
@@ -215,10 +217,16 @@
 | レイヤー | 使用技術 |
 |---|---|
 | フレームワーク | Flutter (Dart) |
-| 状態管理 | Riverpod または Bloc |
-| ローカル DB | sqflite / Hive |
+| 状態管理 | flutter_riverpod |
+| ローカル DB | drift（全Platform対応 SQLite ORM） |
 | グラフ描画 | fl_chart |
-| 画像管理 | image_picker / cached_network_image |
-| 通知 | flutter_local_notifications |
+| 画像管理 | image_picker |
+| 通知 | flutter_local_notifications（Web は UI バナー代替） |
 | ナビゲーション | go_router |
-| アイコン | font_awesome_flutter / Material Icons |
+| カラーピッカー | flutter_colorpicker |
+| CSV エクスポート | csv |
+| アイコン | font_awesome_flutter |
+
+> **Web 対応の注意点**
+> - `sqflite` は Web 非対応のため `drift` を採用（drift/wasm バックエンドで IndexedDB に永続化）
+> - スケジュール通知は Web 非対応。`kIsWeb` でプラットフォーム判定し、Web では画面内バナー通知で代替する
