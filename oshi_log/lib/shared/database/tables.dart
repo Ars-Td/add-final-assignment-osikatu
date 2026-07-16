@@ -24,6 +24,8 @@ class Events extends Table {
   TextColumn get category => text()(); // コンサート/舞台/握手会/配信/その他
   IntColumn get totalAmount => integer().withDefault(const Constant(0))();
   TextColumn get memo => text().nullable()();
+  /// 写真パスの JSON 配列（例: '["path1","path2"]'）。null = 写真なし
+  TextColumn get photoPaths => text().nullable()();
   TextColumn get createdAt => text()();
 }
 

@@ -1,11 +1,15 @@
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/database/app_database.dart';
+import '../../../shared/utils/photo_utils.dart';
 import '../../../shared/widgets/app_bar_loading_indicator.dart';
+import '../../../shared/widgets/oshi_icon.dart';
 import '../event_providers.dart';
 
 const _eventCategories = ['コンサート', '舞台', '握手会', '配信', 'その他'];
@@ -46,6 +50,7 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
   bool _loading = false;
   bool _useBreakdown = false;
   final List<_ExpenseRow> _expenses = [];
+  final List<String> _photoPaths = [];
 
   bool get _isEdit => widget.eventId != null;
 
@@ -70,6 +75,9 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
           event.totalAmount == 0 ? '' : event.totalAmount.toString();
       _category = event.category;
       _date = DateTime.tryParse(event.date);
+      _photoPaths
+        ..clear()
+        ..addAll(decodePhotoPaths(event.photoPaths));
 
       if (expenses.isNotEmpty) {
         _useBreakdown = true;
@@ -115,6 +123,22 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
     });
   }
 
+  /// 写真を追加（ギャラリーから選択）
+  Future<void> _pickPhotos() async {
+    final picker = ImagePicker();
+    final files = await picker.pickMultiImage(imageQuality: 80);
+    if (files.isNotEmpty) {
+      setState(() {
+        _photoPaths.addAll(files.map((f) => f.path));
+      });
+    }
+  }
+
+  /// 写真を削除
+  void _removePhoto(int index) {
+    setState(() => _photoPaths.removeAt(index));
+  }
+
   /// 内訳合計を totalAmount に反映
   void _syncTotal() {
     if (!_useBreakdown) return;
@@ -150,6 +174,7 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
           totalAmount: Value(totalAmount),
           memo: Value(
               _memoCtrl.text.trim().isEmpty ? null : _memoCtrl.text.trim()),
+          photoPaths: Value(encodePhotoPaths(_photoPaths)),
         ));
         await repo.deleteExpensesByEvent(widget.eventId!);
         if (_useBreakdown) {
@@ -174,6 +199,7 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
           totalAmount: Value(totalAmount),
           memo: Value(
               _memoCtrl.text.trim().isEmpty ? null : _memoCtrl.text.trim()),
+          photoPaths: Value(encodePhotoPaths(_photoPaths)),
           createdAt: now,
         ));
         if (_useBreakdown) {
@@ -366,6 +392,77 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
               ),
             ],
 
+            const SizedBox(height: 16),
+
+            // 写真
+            Row(
+              children: [
+                Text('写真',
+                    style: Theme.of(context).textTheme.titleSmall),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: _pickPhotos,
+                  icon: const Icon(Icons.add_a_photo, size: 18),
+                  label: const Text('追加'),
+                ),
+              ],
+            ),
+            if (_photoPaths.isNotEmpty)
+              SizedBox(
+                height: 100,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _photoPaths.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    final img = buildOshiIconImage(_photoPaths[i]);
+                    return Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: img != null
+                              ? Image(
+                                  image: img,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  width: 100,
+                                  height: 100,
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(Icons.image,
+                                      color: Colors.grey),
+                                ),
+                        ),
+                        Positioned(
+                          top: 2,
+                          right: 2,
+                          child: GestureDetector(
+                            onTap: () => _removePhoto(i),
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close,
+                                  size: 18, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            if (!kIsWeb && _photoPaths.isEmpty)
+              Text(
+                'ギャラリーから複数選択できます',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.grey),
+              ),
             const SizedBox(height: 16),
 
             // メモ

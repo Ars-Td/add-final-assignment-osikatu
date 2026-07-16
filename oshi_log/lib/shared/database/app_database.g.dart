@@ -695,6 +695,17 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _photoPathsMeta = const VerificationMeta(
+    'photoPaths',
+  );
+  @override
+  late final GeneratedColumn<String> photoPaths = GeneratedColumn<String>(
+    'photo_paths',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -716,6 +727,7 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
     category,
     totalAmount,
     memo,
+    photoPaths,
     createdAt,
   ];
   @override
@@ -786,6 +798,12 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
         memo.isAcceptableOrUnknown(data['memo']!, _memoMeta),
       );
     }
+    if (data.containsKey('photo_paths')) {
+      context.handle(
+        _photoPathsMeta,
+        photoPaths.isAcceptableOrUnknown(data['photo_paths']!, _photoPathsMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -835,6 +853,10 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
         DriftSqlType.string,
         data['${effectivePrefix}memo'],
       ),
+      photoPaths: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_paths'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -857,6 +879,9 @@ class Event extends DataClass implements Insertable<Event> {
   final String category;
   final int totalAmount;
   final String? memo;
+
+  /// 写真パスの JSON 配列（例: '["path1","path2"]'）。null = 写真なし
+  final String? photoPaths;
   final String createdAt;
   const Event({
     required this.id,
@@ -867,6 +892,7 @@ class Event extends DataClass implements Insertable<Event> {
     required this.category,
     required this.totalAmount,
     this.memo,
+    this.photoPaths,
     required this.createdAt,
   });
   @override
@@ -884,6 +910,9 @@ class Event extends DataClass implements Insertable<Event> {
     if (!nullToAbsent || memo != null) {
       map['memo'] = Variable<String>(memo);
     }
+    if (!nullToAbsent || photoPaths != null) {
+      map['photo_paths'] = Variable<String>(photoPaths);
+    }
     map['created_at'] = Variable<String>(createdAt);
     return map;
   }
@@ -900,6 +929,9 @@ class Event extends DataClass implements Insertable<Event> {
       category: Value(category),
       totalAmount: Value(totalAmount),
       memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
+      photoPaths: photoPaths == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoPaths),
       createdAt: Value(createdAt),
     );
   }
@@ -918,6 +950,7 @@ class Event extends DataClass implements Insertable<Event> {
       category: serializer.fromJson<String>(json['category']),
       totalAmount: serializer.fromJson<int>(json['totalAmount']),
       memo: serializer.fromJson<String?>(json['memo']),
+      photoPaths: serializer.fromJson<String?>(json['photoPaths']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
     );
   }
@@ -933,6 +966,7 @@ class Event extends DataClass implements Insertable<Event> {
       'category': serializer.toJson<String>(category),
       'totalAmount': serializer.toJson<int>(totalAmount),
       'memo': serializer.toJson<String?>(memo),
+      'photoPaths': serializer.toJson<String?>(photoPaths),
       'createdAt': serializer.toJson<String>(createdAt),
     };
   }
@@ -946,6 +980,7 @@ class Event extends DataClass implements Insertable<Event> {
     String? category,
     int? totalAmount,
     Value<String?> memo = const Value.absent(),
+    Value<String?> photoPaths = const Value.absent(),
     String? createdAt,
   }) => Event(
     id: id ?? this.id,
@@ -956,6 +991,7 @@ class Event extends DataClass implements Insertable<Event> {
     category: category ?? this.category,
     totalAmount: totalAmount ?? this.totalAmount,
     memo: memo.present ? memo.value : this.memo,
+    photoPaths: photoPaths.present ? photoPaths.value : this.photoPaths,
     createdAt: createdAt ?? this.createdAt,
   );
   Event copyWithCompanion(EventsCompanion data) {
@@ -970,6 +1006,9 @@ class Event extends DataClass implements Insertable<Event> {
           ? data.totalAmount.value
           : this.totalAmount,
       memo: data.memo.present ? data.memo.value : this.memo,
+      photoPaths: data.photoPaths.present
+          ? data.photoPaths.value
+          : this.photoPaths,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -985,6 +1024,7 @@ class Event extends DataClass implements Insertable<Event> {
           ..write('category: $category, ')
           ..write('totalAmount: $totalAmount, ')
           ..write('memo: $memo, ')
+          ..write('photoPaths: $photoPaths, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1000,6 +1040,7 @@ class Event extends DataClass implements Insertable<Event> {
     category,
     totalAmount,
     memo,
+    photoPaths,
     createdAt,
   );
   @override
@@ -1014,6 +1055,7 @@ class Event extends DataClass implements Insertable<Event> {
           other.category == this.category &&
           other.totalAmount == this.totalAmount &&
           other.memo == this.memo &&
+          other.photoPaths == this.photoPaths &&
           other.createdAt == this.createdAt);
 }
 
@@ -1026,6 +1068,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
   final Value<String> category;
   final Value<int> totalAmount;
   final Value<String?> memo;
+  final Value<String?> photoPaths;
   final Value<String> createdAt;
   const EventsCompanion({
     this.id = const Value.absent(),
@@ -1036,6 +1079,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     this.category = const Value.absent(),
     this.totalAmount = const Value.absent(),
     this.memo = const Value.absent(),
+    this.photoPaths = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   EventsCompanion.insert({
@@ -1047,6 +1091,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     required String category,
     this.totalAmount = const Value.absent(),
     this.memo = const Value.absent(),
+    this.photoPaths = const Value.absent(),
     required String createdAt,
   }) : oshiId = Value(oshiId),
        name = Value(name),
@@ -1062,6 +1107,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     Expression<String>? category,
     Expression<int>? totalAmount,
     Expression<String>? memo,
+    Expression<String>? photoPaths,
     Expression<String>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1073,6 +1119,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
       if (category != null) 'category': category,
       if (totalAmount != null) 'total_amount': totalAmount,
       if (memo != null) 'memo': memo,
+      if (photoPaths != null) 'photo_paths': photoPaths,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1086,6 +1133,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     Value<String>? category,
     Value<int>? totalAmount,
     Value<String?>? memo,
+    Value<String?>? photoPaths,
     Value<String>? createdAt,
   }) {
     return EventsCompanion(
@@ -1097,6 +1145,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
       category: category ?? this.category,
       totalAmount: totalAmount ?? this.totalAmount,
       memo: memo ?? this.memo,
+      photoPaths: photoPaths ?? this.photoPaths,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1128,6 +1177,9 @@ class EventsCompanion extends UpdateCompanion<Event> {
     if (memo.present) {
       map['memo'] = Variable<String>(memo.value);
     }
+    if (photoPaths.present) {
+      map['photo_paths'] = Variable<String>(photoPaths.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
     }
@@ -1145,6 +1197,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
           ..write('category: $category, ')
           ..write('totalAmount: $totalAmount, ')
           ..write('memo: $memo, ')
+          ..write('photoPaths: $photoPaths, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -3550,6 +3603,7 @@ typedef $$EventsTableCreateCompanionBuilder =
       required String category,
       Value<int> totalAmount,
       Value<String?> memo,
+      Value<String?> photoPaths,
       required String createdAt,
     });
 typedef $$EventsTableUpdateCompanionBuilder =
@@ -3562,6 +3616,7 @@ typedef $$EventsTableUpdateCompanionBuilder =
       Value<String> category,
       Value<int> totalAmount,
       Value<String?> memo,
+      Value<String?> photoPaths,
       Value<String> createdAt,
     });
 
@@ -3646,6 +3701,11 @@ class $$EventsTableFilterComposer
 
   ColumnFilters<String> get memo => $composableBuilder(
     column: $table.memo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photoPaths => $composableBuilder(
+    column: $table.photoPaths,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3747,6 +3807,11 @@ class $$EventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get photoPaths => $composableBuilder(
+    column: $table.photoPaths,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3807,6 +3872,11 @@ class $$EventsTableAnnotationComposer
 
   GeneratedColumn<String> get memo =>
       $composableBuilder(column: $table.memo, builder: (column) => column);
+
+  GeneratedColumn<String> get photoPaths => $composableBuilder(
+    column: $table.photoPaths,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3896,6 +3966,7 @@ class $$EventsTableTableManager
                 Value<String> category = const Value.absent(),
                 Value<int> totalAmount = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
+                Value<String?> photoPaths = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
               }) => EventsCompanion(
                 id: id,
@@ -3906,6 +3977,7 @@ class $$EventsTableTableManager
                 category: category,
                 totalAmount: totalAmount,
                 memo: memo,
+                photoPaths: photoPaths,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -3918,6 +3990,7 @@ class $$EventsTableTableManager
                 required String category,
                 Value<int> totalAmount = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
+                Value<String?> photoPaths = const Value.absent(),
                 required String createdAt,
               }) => EventsCompanion.insert(
                 id: id,
@@ -3928,6 +4001,7 @@ class $$EventsTableTableManager
                 category: category,
                 totalAmount: totalAmount,
                 memo: memo,
+                photoPaths: photoPaths,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

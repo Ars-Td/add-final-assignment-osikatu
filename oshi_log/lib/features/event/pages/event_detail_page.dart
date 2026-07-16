@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/utils/format_utils.dart';
+import '../../../shared/utils/photo_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/oshi_icon.dart';
 import '../event_providers.dart';
 
 class EventDetailPage extends ConsumerWidget {
@@ -148,6 +150,9 @@ class EventDetailPage extends ConsumerWidget {
                 },
               ),
 
+              // 写真
+              _PhotoSection(photoPaths: decodePhotoPaths(event.photoPaths)),
+
               // メモ
               if (event.memo != null && event.memo!.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -164,6 +169,120 @@ class EventDetailPage extends ConsumerWidget {
     );
   }
 
+}
+
+/// 写真一覧（横スクロール、タップで全画面表示）
+class _PhotoSection extends StatelessWidget {
+  final List<String> photoPaths;
+  const _PhotoSection({required this.photoPaths});
+
+  @override
+  Widget build(BuildContext context) {
+    if (photoPaths.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        Text('写真', style: Theme.of(context).textTheme.titleSmall),
+        const Divider(),
+        SizedBox(
+          height: 120,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: photoPaths.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final img = buildOshiIconImage(photoPaths[i]);
+              return GestureDetector(
+                onTap: () => _showFullScreen(context, i),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: img != null
+                      ? Image(
+                          image: img,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          width: 120,
+                          height: 120,
+                          color: Colors.grey.shade200,
+                          child:
+                              const Icon(Icons.image, color: Colors.grey),
+                        ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showFullScreen(BuildContext context, int initialIndex) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _FullScreenPhotoPage(
+          paths: photoPaths,
+          initialIndex: initialIndex,
+        ),
+      ),
+    );
+  }
+}
+
+/// 全画面写真ビューア
+class _FullScreenPhotoPage extends StatefulWidget {
+  final List<String> paths;
+  final int initialIndex;
+  const _FullScreenPhotoPage(
+      {required this.paths, required this.initialIndex});
+
+  @override
+  State<_FullScreenPhotoPage> createState() => _FullScreenPhotoPageState();
+}
+
+class _FullScreenPhotoPageState extends State<_FullScreenPhotoPage> {
+  late final PageController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text('${widget.initialIndex + 1} / ${widget.paths.length}'),
+      ),
+      body: PageView.builder(
+        controller: _ctrl,
+        itemCount: widget.paths.length,
+        itemBuilder: (context, i) {
+          final img = buildOshiIconImage(widget.paths[i]);
+          return InteractiveViewer(
+            child: Center(
+              child: img != null
+                  ? Image(image: img, fit: BoxFit.contain)
+                  : const Icon(Icons.image, color: Colors.grey, size: 80),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _InfoRow extends StatelessWidget {
