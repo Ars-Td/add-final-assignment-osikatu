@@ -1,0 +1,56 @@
+name: oshi_log
+description: "推し活専用の活動記録 × 家計簿アプリ"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 状態管理
+  flutter_riverpod: ^2.6.1
+
+  # ローカル DB（全Platform対応 SQLite ORM）
+  drift: ^2.22.1
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+  # ナビゲーション
+  go_router: ^14.8.1
+
+  # グラフ描画
+  fl_chart: ^0.70.2
+
+  # 画像選択
+  image_picker: ^1.1.2
+
+  # 通知（Web は UI バナー代替）
+  flutter_local_notifications: ^18.0.1
+
+  # カラーピッカー
+  flutter_colorpicker: ^1.1.0
+
+  # CSV エクスポート
+  csv: ^6.0.0
+
+  # アイコン
+  font_awesome_flutter: ^10.8.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # drift コード生成
+  drift_dev: ^2.22.1
+  build_runner: ^2.4.13
+
+flutter:
+  uses-material-design: true
