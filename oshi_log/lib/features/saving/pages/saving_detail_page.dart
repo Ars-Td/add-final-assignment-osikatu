@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/database/app_database.dart';
+import '../../../shared/notifications/in_app_banner.dart';
+import '../../../shared/notifications/notification_service.dart';
 import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../saving_providers.dart';
@@ -87,6 +90,24 @@ class _PlanBodyState extends ConsumerState<_PlanBody> {
     ref.invalidate(recordsProvider(widget.plan.id));
     ref.invalidate(totalAmountProvider(widget.plan.id));
     ref.invalidate(streakProvider(widget.plan.id));
+
+    // 目標達成チェック
+    final goalAmount = widget.plan.goalAmount;
+    if (goalAmount != null) {
+      final newTotal = await ref
+          .read(savingRepositoryProvider)
+          .getTotalAmount(widget.plan.id);
+      if (newTotal >= goalAmount && context.mounted) {
+        // Web: バナー / ネイティブ: システム通知
+        if (kIsWeb) {
+          showGoalAchievedBanner(context, widget.plan.name);
+        } else {
+          await NotificationService.instance
+              .showGoalAchieved(widget.plan.name);
+        }
+        return; // 通常 SnackBar は表示しない
+      }
+    }
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
