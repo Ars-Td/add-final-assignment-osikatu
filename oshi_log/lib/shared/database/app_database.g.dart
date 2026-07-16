@@ -633,7 +633,7 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES oshis (id)',
+      'REFERENCES oshis (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
@@ -1234,7 +1234,7 @@ class $EventExpensesTable extends EventExpenses
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES events (id)',
+      'REFERENCES events (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _labelMeta = const VerificationMeta('label');
@@ -1526,7 +1526,7 @@ class $GoodsTable extends Goods with TableInfo<$GoodsTable, Good> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES oshis (id)',
+      'REFERENCES oshis (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
@@ -2167,7 +2167,7 @@ class $SavingPlansTable extends SavingPlans
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES oshis (id)',
+      'REFERENCES oshis (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
@@ -2677,7 +2677,7 @@ class $SavingRecordsTable extends SavingRecords
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES saving_plans (id)',
+      'REFERENCES saving_plans (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
@@ -3017,6 +3017,44 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     savingPlans,
     savingRecords,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'oshis',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'events',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('event_expenses', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'oshis',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('goods', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'oshis',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('saving_plans', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'saving_plans',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('saving_records', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$OshisTableCreateCompanionBuilder =

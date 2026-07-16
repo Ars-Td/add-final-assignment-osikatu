@@ -17,7 +17,9 @@ class Oshis extends Table {
 /// イベントテーブル
 class Events extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get oshiId => integer().references(Oshis, #id)();
+  // 推しが削除されたらイベントもカスケード削除
+  IntColumn get oshiId =>
+      integer().references(Oshis, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
   TextColumn get date => text()(); // ISO 8601
   TextColumn get venue => text().nullable()();
@@ -32,7 +34,9 @@ class Events extends Table {
 /// イベント支出内訳テーブル
 class EventExpenses extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get eventId => integer().references(Events, #id)();
+  // イベントが削除されたら内訳もカスケード削除
+  IntColumn get eventId =>
+      integer().references(Events, #id, onDelete: KeyAction.cascade)();
   TextColumn get label => text()(); // チケット/交通費/宿泊費/その他
   IntColumn get amount => integer()();
 }
@@ -40,7 +44,9 @@ class EventExpenses extends Table {
 /// グッズテーブル
 class Goods extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get oshiId => integer().references(Oshis, #id)();
+  // 推しが削除されたらグッズもカスケード削除
+  IntColumn get oshiId =>
+      integer().references(Oshis, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
   TextColumn get purchaseDate => text()(); // ISO 8601
   TextColumn get category => text()(); // CD/Blu-ray/写真集/アパレル/アクセサリー/雑貨/その他
@@ -55,7 +61,9 @@ class Goods extends Table {
 /// 貯金プランテーブル
 class SavingPlans extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get oshiId => integer().references(Oshis, #id)();
+  // 推しが削除されたら貯金プランもカスケード削除
+  IntColumn get oshiId =>
+      integer().references(Oshis, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
   TextColumn get startDate => text()(); // ISO 8601
   TextColumn get goalDate => text().nullable()();
@@ -67,7 +75,9 @@ class SavingPlans extends Table {
 /// 貯金記録テーブル
 class SavingRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get planId => integer().references(SavingPlans, #id)();
+  // 貯金プランが削除されたら記録もカスケード削除
+  IntColumn get planId =>
+      integer().references(SavingPlans, #id, onDelete: KeyAction.cascade)();
   TextColumn get date => text()(); // ISO 8601 (YYYY-MM-DD)
   IntColumn get amount => integer()();
   TextColumn get createdAt => text()();

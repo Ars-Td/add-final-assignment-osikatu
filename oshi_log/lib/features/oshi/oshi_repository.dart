@@ -49,9 +49,46 @@ class OshiRepository {
     );
   }
 
-  /// 推しを削除
-  Future<int> deleteOshi(int id) =>
-      (_db.delete(_db.oshis)..where((t) => t.id.equals(id))).go();
+  /// 推しを削除（関連データをカスケード削除）
+  ///
+  /// - 新規 DB (v3+): PRAGMA foreign_keys=ON + ON DELETE CASCADE で自動削除
+  /// - 既存 DB (v1/v2): アプリコードで関連データを手動削除してから推しを削除
+  Future<int> deleteOshi(int id) async {
+    return _db.transaction(() async {
+      // 1. イベントの支出内訳を削除
+      final eventIds = await (_db.select(_db.events)
+            ..where((t) => t.oshiId.equals(id)))
+          .map((e) => e.id)
+          .get();
+      for (final eid in eventIds) {
+        await (_db.delete(_db.eventExpenses)
+              ..where((t) => t.eventId.equals(eid)))
+            .go();
+      }
+      // 2. イベントを削除
+      await (_db.delete(_db.events)..where((t) => t.oshiId.equals(id))).go();
+
+      // 3. グッズを削除
+      await (_db.delete(_db.goods)..where((t) => t.oshiId.equals(id))).go();
+
+      // 4. 貯金プランと記録を削除
+      final planIds = await (_db.select(_db.savingPlans)
+            ..where((t) => t.oshiId.equals(id)))
+          .map((p) => p.id)
+          .get();
+      for (final pid in planIds) {
+        await (_db.delete(_db.savingRecords)
+              ..where((t) => t.planId.equals(pid)))
+            .go();
+      }
+      await (_db.delete(_db.savingPlans)
+            ..where((t) => t.oshiId.equals(id)))
+          .go();
+
+      // 5. 推しを削除
+      return (_db.delete(_db.oshis)..where((t) => t.id.equals(id))).go();
+    });
+  }
 
   /// 推し一覧をウォッチ（リアクティブ）
   Stream<List<Oshi>> watchAllOshis() =>

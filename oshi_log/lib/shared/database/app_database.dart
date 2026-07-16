@@ -24,7 +24,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -34,6 +34,15 @@ class AppDatabase extends _$AppDatabase {
             // v1 → v2: events テーブルに photoPaths カラムを追加
             await m.addColumn(events, events.photoPaths);
           }
+          // v2 → v3: 外部キー制約に onDelete CASCADE を追加
+          // SQLite では外部キー制約の変更は CREATE TABLE のやり直しが必要だが、
+          // 既存 DB では制約変更は DDL で反映されない。
+          // 代わりに PRAGMA foreign_keys=ON で外部キーを有効化し、
+          // アプリコード側でのカスケード削除を組み合わせる。
+        },
+        beforeOpen: (details) async {
+          // 外部キー制約を有効化（SQLite はデフォルト OFF）
+          await customStatement('PRAGMA foreign_keys = ON');
         },
       );
 }
