@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../main.dart' show themeModeProvider;
 import '../../../shared/database/database_provider.dart';
 import '../../../shared/notifications/notification_service.dart';
 import '../export_service.dart';
@@ -30,6 +31,10 @@ class SettingsPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('設定')),
       body: ListView(
         children: [
+          // ---- 表示設定 ----
+          _SectionHeader(title: '表示設定'),
+          _ThemeSection(),
+
           // ---- 通知設定 ----
           _SectionHeader(title: '通知設定'),
           _NotificationSection(),
@@ -43,6 +48,45 @@ class SettingsPage extends ConsumerWidget {
           const _AppInfoSection(),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 表示設定セクション（ダークモード）
+// ---------------------------------------------------------------------------
+
+class _ThemeSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(themeModeProvider);
+    return Column(
+      children: [
+        RadioListTile<ThemeMode>(
+          title: const Text('システムに合わせる'),
+          value: ThemeMode.system,
+          groupValue: current,
+          onChanged: (v) =>
+              ref.read(themeModeProvider.notifier).state = v!,
+          secondary: const Icon(Icons.brightness_auto),
+        ),
+        RadioListTile<ThemeMode>(
+          title: const Text('ライトモード'),
+          value: ThemeMode.light,
+          groupValue: current,
+          onChanged: (v) =>
+              ref.read(themeModeProvider.notifier).state = v!,
+          secondary: const Icon(Icons.light_mode),
+        ),
+        RadioListTile<ThemeMode>(
+          title: const Text('ダークモード'),
+          value: ThemeMode.dark,
+          groupValue: current,
+          onChanged: (v) =>
+              ref.read(themeModeProvider.notifier).state = v!,
+          secondary: const Icon(Icons.dark_mode),
+        ),
+      ],
     );
   }
 }

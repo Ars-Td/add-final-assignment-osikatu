@@ -12,13 +12,19 @@ import '../../features/oshi/pages/oshi_list_page.dart';
 import '../../features/saving/pages/saving_detail_page.dart';
 import '../../features/saving/pages/saving_plan_form_page.dart';
 import '../../features/settings/pages/settings_page.dart';
+import '../../features/splash/splash_page.dart';
 import '../../features/summary/pages/summary_page.dart';
 import '../widgets/scaffold_with_bottom_nav.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     routes: [
+      // スプラッシュ画面
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             ScaffoldWithBottomNav(navigationShell: navigationShell),

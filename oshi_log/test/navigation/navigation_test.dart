@@ -2,15 +2,53 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:oshi_log/features/oshi/pages/oshi_list_page.dart';
+import 'package:oshi_log/features/settings/pages/settings_page.dart';
+import 'package:oshi_log/features/summary/pages/summary_page.dart';
 import 'package:oshi_log/main.dart';
 import 'package:oshi_log/shared/database/app_database.dart';
 import 'package:oshi_log/shared/database/database_provider.dart';
+import 'package:oshi_log/shared/router/app_router.dart';
+import 'package:oshi_log/shared/widgets/scaffold_with_bottom_nav.dart';
+
+/// テスト用 router: スプラッシュをスキップして直接 / から開始
+GoRouter _buildTestRouter() => GoRouter(
+      initialLocation: '/',
+      routes: [
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, shell) =>
+              ScaffoldWithBottomNav(navigationShell: shell),
+          branches: [
+            StatefulShellBranch(routes: [
+              GoRoute(
+                  path: '/',
+                  builder: (_, __) => const OshiListPage()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                  path: '/summary',
+                  builder: (_, __) => const SummaryPage()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                  path: '/settings',
+                  builder: (_, __) => const SettingsPage()),
+            ]),
+          ],
+        ),
+      ],
+    );
 
 void main() {
   Widget buildApp() {
     final db = AppDatabase(NativeDatabase.memory());
+    final testRouter = _buildTestRouter();
     return ProviderScope(
-      overrides: [databaseProvider.overrideWithValue(db)],
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        routerProvider.overrideWithValue(testRouter),
+      ],
       child: const OshiLogApp(),
     );
   }

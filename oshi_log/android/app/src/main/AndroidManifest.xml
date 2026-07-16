@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 通知権限（Android 13+） -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- カメラ権限（image_picker） -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- 外部ストレージ読み取り（image_picker, Android 12以下） -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+    <!-- メディア読み取り（Android 13+） -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <application
         android:label="oshi_log"
         android:name="${applicationName}"
