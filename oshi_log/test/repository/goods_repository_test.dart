@@ -65,6 +65,41 @@ void main() {
       expect(list.first.name, 'CD作品');
     });
 
+    test('月 + カテゴリ 複合フィルタで両条件を満たすグッズのみ取得できる', () async {
+      // 7月 CD
+      await goodsRepo.insertGoods(GoodsCompanion.insert(
+        oshiId: oshiId,
+        name: '7月CD',
+        purchaseDate: '2026-07-10',
+        category: 'CD',
+        amount: 3000,
+        createdAt: '2026-07-10T00:00:00.000Z',
+      ));
+      // 8月 CD（月が異なる → 除外）
+      await goodsRepo.insertGoods(GoodsCompanion.insert(
+        oshiId: oshiId,
+        name: '8月CD',
+        purchaseDate: '2026-08-01',
+        category: 'CD',
+        amount: 3000,
+        createdAt: '2026-08-01T00:00:00.000Z',
+      ));
+      // 7月 アパレル（カテゴリが異なる → 除外）
+      await goodsRepo.insertGoods(GoodsCompanion.insert(
+        oshiId: oshiId,
+        name: '7月アパレル',
+        purchaseDate: '2026-07-20',
+        category: 'アパレル',
+        amount: 5000,
+        createdAt: '2026-07-20T00:00:00.000Z',
+      ));
+
+      final list = await goodsRepo.getGoodsByMonthAndCategory(
+          oshiId, 2026, 7, 'CD');
+      expect(list.length, 1);
+      expect(list.first.name, '7月CD');
+    });
+
     test('グッズの合計支出を取得できる', () async {
       await goodsRepo.insertGoods(GoodsCompanion.insert(
         oshiId: oshiId,

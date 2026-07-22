@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/database/app_database.dart';
+import '../../../shared/notifications/notification_service.dart';
 import '../../../shared/utils/photo_utils.dart';
 import '../../../shared/widgets/app_bar_loading_indicator.dart';
 import '../../../shared/widgets/oshi_icon.dart';
@@ -161,8 +162,10 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
     final totalAmount = int.tryParse(_totalAmountCtrl.text.trim()) ?? 0;
     final now = DateTime.now().toIso8601String();
 
+    int savedEventId;
     try {
       if (_isEdit) {
+        savedEventId = widget.eventId!;
         await repo.updateEvent(EventsCompanion(
           id: Value(widget.eventId!),
           oshiId: Value(widget.oshiId),
@@ -189,7 +192,7 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
           }
         }
       } else {
-        final eventId = await repo.insertEvent(EventsCompanion.insert(
+        savedEventId = await repo.insertEvent(EventsCompanion.insert(
           oshiId: widget.oshiId,
           name: _nameCtrl.text.trim(),
           date: _date!.toIso8601String().substring(0, 10),
@@ -206,7 +209,7 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
           for (final e in _expenses) {
             if (e.amount > 0) {
               await repo.insertExpense(EventExpensesCompanion.insert(
-                eventId: eventId,
+                eventId: savedEventId,
                 label: e.label,
                 amount: e.amount,
               ));
@@ -215,7 +218,15 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
         }
       }
 
+      // イベント前日通知をスケジュール（ネイティブのみ）
+      if (!kIsWeb) {
+        await NotificationService.instance.scheduleEventReminder(
+            savedEventId, _nameCtrl.text.trim(), _date!);
+      }
+
       if (mounted) {
+        // 一覧を最新状態に更新してからページを閉じる
+        ref.invalidate(eventListProvider(widget.oshiId));
         if (context.canPop()) {
           context.pop();
         } else {
@@ -287,6 +298,7 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
             const SizedBox(height: 16),
 
             // カテゴリ
+            // ignore: deprecated_member_use
             DropdownButtonFormField<String>(
               value: _category,
               decoration: const InputDecoration(
@@ -344,6 +356,7 @@ class _EventFormPageState extends ConsumerState<EventFormPage> {
                     children: [
                       Expanded(
                         flex: 2,
+                        // ignore: deprecated_member_use
                         child: DropdownButtonFormField<String>(
                           value: row.label,
                           decoration: const InputDecoration(

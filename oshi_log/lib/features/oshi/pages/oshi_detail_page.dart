@@ -2,12 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'dart:convert';
+
+import '../../../shared/notifications/notification_service.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/oshi_icon.dart';
 import '../../event/widgets/event_list_tab.dart';
 import '../../goods/widgets/goods_list_tab.dart';
 import '../../saving/widgets/saving_list_tab.dart';
 import '../oshi_providers.dart';
+
+List<String> _decodeMembers(String? json) {
+  if (json == null || json.isEmpty) return [];
+  try {
+    final decoded = jsonDecode(json);
+    if (decoded is List) return decoded.cast<String>();
+  } catch (_) {}
+  return [];
+}
 
 class OshiDetailPage extends ConsumerStatefulWidget {
   final int oshiId;
@@ -80,6 +92,11 @@ class _OshiDetailPageState extends ConsumerState<OshiDetailPage> {
                             await ref
                                 .read(oshiRepositoryProvider)
                                 .deleteOshi(widget.oshiId);
+                            // 誕生日通知もキャンセル
+                            await NotificationService.instance
+                                .cancelBirthdayNotification(widget.oshiId);
+                            // 一覧を最新状態に更新
+                            ref.invalidate(oshiListProvider);
                             if (context.mounted) context.pop();
                           }
                         }
@@ -134,11 +151,36 @@ class _OshiDetailPageState extends ConsumerState<OshiDetailPage> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
-                              oshi.category,
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 13),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (oshi.isGroup)
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 4),
+                                    child: Icon(Icons.group,
+                                        color: Colors.white70, size: 14),
+                                  ),
+                                Text(
+                                  oshi.category,
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 13),
+                                ),
+                              ],
                             ),
+                            // グループメンバー表示
+                            if (oshi.isGroup) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _decodeMembers(oshi.members)
+                                    .where((m) => m.isNotEmpty)
+                                    .join(' · '),
+                                style: const TextStyle(
+                                    color: Colors.white60, fontSize: 11),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ],
                         ),
                       ),

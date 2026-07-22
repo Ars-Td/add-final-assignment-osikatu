@@ -16,6 +16,13 @@ class OshiAmount {
   });
 }
 
+/// カテゴリ別支出（月次サマリー用）
+class CategoryAmount {
+  final String label;   // 'イベント費' / 'グッズ費'
+  final int amount;
+  const CategoryAmount({required this.label, required this.amount});
+}
+
 class SummaryRepository {
   final AppDatabase _db;
   SummaryRepository(this._db);
@@ -132,6 +139,29 @@ class SummaryRepository {
           ..where((t) => t.oshiId.equals(oshiId)))
         .get();
     return rows.fold<int>(0, (sum, g) => sum + g.quantity);
+  }
+
+  /// 指定月のカテゴリ別支出（イベント費・グッズ費）
+  Future<List<CategoryAmount>> getMonthlyCategoryBreakdown(
+      int year, int month) async {
+    final prefix = '$year-${month.toString().padLeft(2, '0')}';
+
+    final events = await (_db.select(_db.events)
+          ..where((t) => t.date.like('$prefix%')))
+        .get();
+    final eventTotal =
+        events.fold<int>(0, (sum, e) => sum + e.totalAmount);
+
+    final goods = await (_db.select(_db.goods)
+          ..where((t) => t.purchaseDate.like('$prefix%')))
+        .get();
+    final goodsTotal =
+        goods.fold<int>(0, (sum, g) => sum + g.amount * g.quantity);
+
+    return [
+      CategoryAmount(label: 'イベント費', amount: eventTotal),
+      CategoryAmount(label: 'グッズ費', amount: goodsTotal),
+    ];
   }
 
   /// 全推し一覧（サマリー推しタブ用）

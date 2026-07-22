@@ -128,6 +128,8 @@ class _SavingPlanFormPageState extends ConsumerState<SavingPlanFormPage> {
         ));
       }
       if (mounted) {
+        // 一覧を最新状態に更新してからページを閉じる
+        ref.invalidate(planListProvider(widget.oshiId));
         if (context.canPop()) {
           context.pop();
         } else {

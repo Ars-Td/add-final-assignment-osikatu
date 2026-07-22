@@ -55,6 +55,8 @@ class GoodsDetailPage extends ConsumerWidget {
                       await ref
                           .read(goodsRepositoryProvider)
                           .deleteGoods(goodsId);
+                      // 一覧を最新状態に更新
+                      ref.invalidate(goodsListProvider(oshiId));
                       if (context.mounted) context.pop();
                     }
                   }
@@ -254,15 +256,26 @@ class _FullScreenPage extends StatefulWidget {
 
 class _FullScreenPageState extends State<_FullScreenPage> {
   late final PageController _ctrl;
+  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _ctrl = PageController(initialPage: widget.initialIndex);
+    _ctrl.addListener(_onPageChanged);
+  }
+
+  void _onPageChanged() {
+    final page = _ctrl.page?.round();
+    if (page != null && page != _currentIndex) {
+      setState(() => _currentIndex = page);
+    }
   }
 
   @override
   void dispose() {
+    _ctrl.removeListener(_onPageChanged);
     _ctrl.dispose();
     super.dispose();
   }
@@ -274,7 +287,7 @@ class _FullScreenPageState extends State<_FullScreenPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text('${widget.initialIndex + 1} / ${widget.paths.length}'),
+        title: Text('${_currentIndex + 1} / ${widget.paths.length}'),
       ),
       body: PageView.builder(
         controller: _ctrl,

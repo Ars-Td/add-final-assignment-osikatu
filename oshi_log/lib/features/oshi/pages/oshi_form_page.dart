@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -7,11 +9,29 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/database/app_database.dart';
+import '../../../shared/notifications/notification_service.dart';
 import '../../../shared/widgets/app_bar_loading_indicator.dart';
 import '../../../shared/widgets/oshi_icon.dart';
 import '../oshi_providers.dart';
 
 const _categories = ['アイドル', '俳優', 'VTuber', 'アニメ', 'その他'];
+
+/// members JSON エンコード
+String? _encodeMembers(List<String> members) {
+  final trimmed = members.map((m) => m.trim()).where((m) => m.isNotEmpty).toList();
+  if (trimmed.isEmpty) return null;
+  return jsonEncode(trimmed);
+}
+
+/// members JSON デコード
+List<String> _decodeMembers(String? json) {
+  if (json == null || json.isEmpty) return [];
+  try {
+    final decoded = jsonDecode(json);
+    if (decoded is List) return decoded.cast<String>();
+  } catch (_) {}
+  return [];
+}
 
 class OshiFormPage extends ConsumerStatefulWidget {
   final int? oshiId;
@@ -32,6 +52,10 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
   String? _iconPath;
   bool _loading = false;
 
+  // グループ関連
+  bool _isGroup = false;
+  final List<TextEditingController> _memberCtrls = [];
+
   bool get _isEdit => widget.oshiId != null;
 
   @override
@@ -45,14 +69,28 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
         .read(oshiRepositoryProvider)
         .getOshiById(widget.oshiId!);
     if (oshi == null || !mounted) return;
+    final members = _decodeMembers(oshi.members);
     setState(() {
       _nameCtrl.text = oshi.name;
       _memoCtrl.text = oshi.memo ?? '';
       _coverColor = Color(oshi.coverColor);
       _category = oshi.category;
       _iconPath = oshi.iconPath;
+      _isGroup = oshi.isGroup;
       if (oshi.birthday != null) {
         _birthday = DateTime.tryParse(oshi.birthday!);
+      }
+      // メンバーコントローラを復元
+      for (final ctrl in _memberCtrls) {
+        ctrl.dispose();
+      }
+      _memberCtrls.clear();
+      for (final name in members) {
+        _memberCtrls.add(TextEditingController(text: name));
+      }
+      // 空欄がなければ入力欄を1つ追加
+      if (_isGroup && _memberCtrls.isEmpty) {
+        _memberCtrls.add(TextEditingController());
       }
     });
   }
@@ -61,7 +99,30 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
   void dispose() {
     _nameCtrl.dispose();
     _memoCtrl.dispose();
+    for (final ctrl in _memberCtrls) {
+      ctrl.dispose();
+    }
     super.dispose();
+  }
+
+  void _toggleGroup(bool value) {
+    setState(() {
+      _isGroup = value;
+      if (value && _memberCtrls.isEmpty) {
+        _memberCtrls.add(TextEditingController());
+      }
+    });
+  }
+
+  void _addMember() {
+    setState(() => _memberCtrls.add(TextEditingController()));
+  }
+
+  void _removeMember(int index) {
+    setState(() {
+      _memberCtrls[index].dispose();
+      _memberCtrls.removeAt(index);
+    });
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -111,8 +172,12 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
 
     final repo = ref.read(oshiRepositoryProvider);
     final now = DateTime.now().toIso8601String();
+    final membersJson = _isGroup
+        ? _encodeMembers(_memberCtrls.map((c) => c.text).toList())
+        : null;
 
     try {
+      int savedId;
       if (_isEdit) {
         await repo.updateOshi(OshisCompanion(
           id: Value(widget.oshiId!),
@@ -124,9 +189,12 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
               : _memoCtrl.text.trim()),
           birthday: Value(_birthday?.toIso8601String()),
           iconPath: Value(_iconPath),
+          isGroup: Value(_isGroup),
+          members: Value(membersJson),
         ));
+        savedId = widget.oshiId!;
       } else {
-        await repo.insertOshi(OshisCompanion.insert(
+        savedId = await repo.insertOshi(OshisCompanion.insert(
           name: _nameCtrl.text.trim(),
           coverColor: _coverColor.toARGB32(),
           category: _category,
@@ -135,10 +203,26 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
               : _memoCtrl.text.trim()),
           birthday: Value(_birthday?.toIso8601String()),
           iconPath: Value(_iconPath),
+          isGroup: Value(_isGroup),
+          members: Value(membersJson),
           createdAt: now,
         ));
       }
+
+      // 誕生日通知のスケジュール更新（ネイティブのみ）
+      if (!kIsWeb) {
+        final notif = NotificationService.instance;
+        if (_birthday != null) {
+          await notif.scheduleBirthdayNotification(
+              savedId, _nameCtrl.text.trim(), _birthday!);
+        } else {
+          await notif.cancelBirthdayNotification(savedId);
+        }
+      }
+
       if (mounted) {
+        // 一覧を最新状態に更新してからページを閉じる
+        ref.invalidate(oshiListProvider);
         if (context.canPop()) {
           context.pop();
         } else {
@@ -212,17 +296,81 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
             ),
             const SizedBox(height: 24),
 
-            // 名前
+            // グループ / 個人 切り替え
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('グループとして登録'),
+              subtitle: const Text('複数メンバーをまとめて管理する'),
+              secondary: Icon(
+                _isGroup ? Icons.group : Icons.person,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              value: _isGroup,
+              onChanged: _toggleGroup,
+            ),
+            const Divider(),
+
+            // 名前（グループ名 or 個人名）
+            const SizedBox(height: 8),
             TextFormField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: '名前 *',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: _isGroup ? 'グループ名 *' : '名前 *',
+                border: const OutlineInputBorder(),
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? '名前を入力してください' : null,
             ),
             const SizedBox(height: 16),
+
+            // メンバー入力（グループ時のみ）
+            if (_isGroup) ...[
+              Row(
+                children: [
+                  Text(
+                    'メンバー',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _addMember,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('追加'),
+                  ),
+                ],
+              ),
+              ..._memberCtrls.asMap().entries.map((entry) {
+                final i = entry.key;
+                final ctrl = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: ctrl,
+                          decoration: InputDecoration(
+                            labelText: 'メンバー ${i + 1}',
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline,
+                            color: Colors.red),
+                        onPressed: _memberCtrls.length > 1
+                            ? () => _removeMember(i)
+                            : null,
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 8),
+              const Divider(),
+            ],
 
             // カバーカラー
             ListTile(
@@ -258,29 +406,31 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
             ),
             const SizedBox(height: 16),
 
-            // 誕生日
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('誕生日'),
-              subtitle: Text(_birthday == null
-                  ? '未設定'
-                  : '${_birthday!.year}/${_birthday!.month}/${_birthday!.day}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_birthday != null)
+            // 誕生日（個人のみ表示 / グループ時は非表示）
+            if (!_isGroup) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('誕生日'),
+                subtitle: Text(_birthday == null
+                    ? '未設定'
+                    : '${_birthday!.year}/${_birthday!.month}/${_birthday!.day}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_birthday != null)
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() => _birthday = null),
+                      ),
                     IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() => _birthday = null),
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: _pickBirthday,
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today),
-                    onPressed: _pickBirthday,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const Divider(),
+              const Divider(),
+            ],
 
             // メモ
             const SizedBox(height: 8),
@@ -298,5 +448,4 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
       ),
     );
   }
-
 }

@@ -16,6 +16,7 @@ dependencies:
 
   # ローカル DB（全Platform対応 SQLite ORM）
   drift: ^2.22.1
+  drift_flutter: ^0.2.4
   sqlite3_flutter_libs: ^0.5.24
   path_provider: ^2.1.5
   path: ^1.9.1
@@ -44,8 +45,11 @@ dependencies:
   # CSV エクスポート
   csv: ^6.0.0
 
-  # アイコン
-  font_awesome_flutter: ^10.8.0
+  # ファイル共有（ネイティブ OS Share シート）
+  share_plus: ^10.1.4
+
+  # Web API（dart:html の代替）
+  web: ^1.1.1
 
   cupertino_icons: ^1.0.8
 

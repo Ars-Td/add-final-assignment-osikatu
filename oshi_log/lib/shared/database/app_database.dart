@@ -1,10 +1,5 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 
 import 'tables.dart';
 
@@ -24,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -43,6 +38,10 @@ class AppDatabase extends _$AppDatabase {
             // v3 → v4: goods テーブルに photoPaths カラムを追加
             await m.addColumn(goods, goods.photoPaths);
           }
+          if (from < 5) {
+            // v4 → v5: oshis テーブルに members カラムを追加（グループメンバー名 JSON）
+            await m.addColumn(oshis, oshis.members);
+          }
         },
         beforeOpen: (details) async {
           // 外部キー制約を有効化（SQLite はデフォルト OFF）
@@ -51,14 +50,15 @@ class AppDatabase extends _$AppDatabase {
       );
 }
 
+/// drift_flutter の driftDatabase() を使用。
+/// - Web: WasmDatabase（IndexedDB/OPFS に永続化）
+/// - iOS/Android: NativeDatabase（SQLite ファイル）
 QueryExecutor _openConnection() {
-  if (kIsWeb) {
-    // Web: インメモリ（本番では drift/wasm + IndexedDB を使用）
-    return NativeDatabase.memory();
-  }
-  return LazyDatabase(() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'oshi_log.db'));
-    return NativeDatabase(file);
-  });
+  return driftDatabase(
+    name: 'oshi_log',
+    web: DriftWebOptions(
+      sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+      driftWorker: Uri.parse('drift_worker.js'),
+    ),
+  );
 }

@@ -98,6 +98,17 @@ class $OshisTable extends Oshis with TableInfo<$OshisTable, Oshi> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _membersMeta = const VerificationMeta(
+    'members',
+  );
+  @override
+  late final GeneratedColumn<String> members = GeneratedColumn<String>(
+    'members',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -130,6 +141,7 @@ class $OshisTable extends Oshis with TableInfo<$OshisTable, Oshi> {
     category,
     memo,
     isGroup,
+    members,
     createdAt,
     lastViewedAt,
   ];
@@ -196,6 +208,12 @@ class $OshisTable extends Oshis with TableInfo<$OshisTable, Oshi> {
         isGroup.isAcceptableOrUnknown(data['is_group']!, _isGroupMeta),
       );
     }
+    if (data.containsKey('members')) {
+      context.handle(
+        _membersMeta,
+        members.isAcceptableOrUnknown(data['members']!, _membersMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -254,6 +272,10 @@ class $OshisTable extends Oshis with TableInfo<$OshisTable, Oshi> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_group'],
       )!,
+      members: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}members'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -280,6 +302,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
   final String category;
   final String? memo;
   final bool isGroup;
+  final String? members;
   final String createdAt;
   final String? lastViewedAt;
   const Oshi({
@@ -291,6 +314,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     required this.category,
     this.memo,
     required this.isGroup,
+    this.members,
     required this.createdAt,
     this.lastViewedAt,
   });
@@ -311,6 +335,9 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       map['memo'] = Variable<String>(memo);
     }
     map['is_group'] = Variable<bool>(isGroup);
+    if (!nullToAbsent || members != null) {
+      map['members'] = Variable<String>(members);
+    }
     map['created_at'] = Variable<String>(createdAt);
     if (!nullToAbsent || lastViewedAt != null) {
       map['last_viewed_at'] = Variable<String>(lastViewedAt);
@@ -332,6 +359,9 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       category: Value(category),
       memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
       isGroup: Value(isGroup),
+      members: members == null && nullToAbsent
+          ? const Value.absent()
+          : Value(members),
       createdAt: Value(createdAt),
       lastViewedAt: lastViewedAt == null && nullToAbsent
           ? const Value.absent()
@@ -353,6 +383,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       category: serializer.fromJson<String>(json['category']),
       memo: serializer.fromJson<String?>(json['memo']),
       isGroup: serializer.fromJson<bool>(json['isGroup']),
+      members: serializer.fromJson<String?>(json['members']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       lastViewedAt: serializer.fromJson<String?>(json['lastViewedAt']),
     );
@@ -369,6 +400,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       'category': serializer.toJson<String>(category),
       'memo': serializer.toJson<String?>(memo),
       'isGroup': serializer.toJson<bool>(isGroup),
+      'members': serializer.toJson<String?>(members),
       'createdAt': serializer.toJson<String>(createdAt),
       'lastViewedAt': serializer.toJson<String?>(lastViewedAt),
     };
@@ -383,6 +415,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     String? category,
     Value<String?> memo = const Value.absent(),
     bool? isGroup,
+    Value<String?> members = const Value.absent(),
     String? createdAt,
     Value<String?> lastViewedAt = const Value.absent(),
   }) => Oshi(
@@ -394,6 +427,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     category: category ?? this.category,
     memo: memo.present ? memo.value : this.memo,
     isGroup: isGroup ?? this.isGroup,
+    members: members.present ? members.value : this.members,
     createdAt: createdAt ?? this.createdAt,
     lastViewedAt: lastViewedAt.present ? lastViewedAt.value : this.lastViewedAt,
   );
@@ -409,6 +443,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       category: data.category.present ? data.category.value : this.category,
       memo: data.memo.present ? data.memo.value : this.memo,
       isGroup: data.isGroup.present ? data.isGroup.value : this.isGroup,
+      members: data.members.present ? data.members.value : this.members,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       lastViewedAt: data.lastViewedAt.present
           ? data.lastViewedAt.value
@@ -427,6 +462,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
           ..write('category: $category, ')
           ..write('memo: $memo, ')
           ..write('isGroup: $isGroup, ')
+          ..write('members: $members, ')
           ..write('createdAt: $createdAt, ')
           ..write('lastViewedAt: $lastViewedAt')
           ..write(')'))
@@ -443,6 +479,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     category,
     memo,
     isGroup,
+    members,
     createdAt,
     lastViewedAt,
   );
@@ -458,6 +495,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
           other.category == this.category &&
           other.memo == this.memo &&
           other.isGroup == this.isGroup &&
+          other.members == this.members &&
           other.createdAt == this.createdAt &&
           other.lastViewedAt == this.lastViewedAt);
 }
@@ -471,6 +509,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
   final Value<String> category;
   final Value<String?> memo;
   final Value<bool> isGroup;
+  final Value<String?> members;
   final Value<String> createdAt;
   final Value<String?> lastViewedAt;
   const OshisCompanion({
@@ -482,6 +521,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     this.category = const Value.absent(),
     this.memo = const Value.absent(),
     this.isGroup = const Value.absent(),
+    this.members = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.lastViewedAt = const Value.absent(),
   });
@@ -494,6 +534,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     required String category,
     this.memo = const Value.absent(),
     this.isGroup = const Value.absent(),
+    this.members = const Value.absent(),
     required String createdAt,
     this.lastViewedAt = const Value.absent(),
   }) : name = Value(name),
@@ -509,6 +550,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     Expression<String>? category,
     Expression<String>? memo,
     Expression<bool>? isGroup,
+    Expression<String>? members,
     Expression<String>? createdAt,
     Expression<String>? lastViewedAt,
   }) {
@@ -521,6 +563,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
       if (category != null) 'category': category,
       if (memo != null) 'memo': memo,
       if (isGroup != null) 'is_group': isGroup,
+      if (members != null) 'members': members,
       if (createdAt != null) 'created_at': createdAt,
       if (lastViewedAt != null) 'last_viewed_at': lastViewedAt,
     });
@@ -535,6 +578,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     Value<String>? category,
     Value<String?>? memo,
     Value<bool>? isGroup,
+    Value<String?>? members,
     Value<String>? createdAt,
     Value<String?>? lastViewedAt,
   }) {
@@ -547,6 +591,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
       category: category ?? this.category,
       memo: memo ?? this.memo,
       isGroup: isGroup ?? this.isGroup,
+      members: members ?? this.members,
       createdAt: createdAt ?? this.createdAt,
       lastViewedAt: lastViewedAt ?? this.lastViewedAt,
     );
@@ -579,6 +624,9 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     if (isGroup.present) {
       map['is_group'] = Variable<bool>(isGroup.value);
     }
+    if (members.present) {
+      map['members'] = Variable<String>(members.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
     }
@@ -599,6 +647,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
           ..write('category: $category, ')
           ..write('memo: $memo, ')
           ..write('isGroup: $isGroup, ')
+          ..write('members: $members, ')
           ..write('createdAt: $createdAt, ')
           ..write('lastViewedAt: $lastViewedAt')
           ..write(')'))
@@ -3122,6 +3171,7 @@ typedef $$OshisTableCreateCompanionBuilder =
       required String category,
       Value<String?> memo,
       Value<bool> isGroup,
+      Value<String?> members,
       required String createdAt,
       Value<String?> lastViewedAt,
     });
@@ -3135,6 +3185,7 @@ typedef $$OshisTableUpdateCompanionBuilder =
       Value<String> category,
       Value<String?> memo,
       Value<bool> isGroup,
+      Value<String?> members,
       Value<String> createdAt,
       Value<String?> lastViewedAt,
     });
@@ -3245,6 +3296,11 @@ class $$OshisTableFilterComposer extends Composer<_$AppDatabase, $OshisTable> {
 
   ColumnFilters<bool> get isGroup => $composableBuilder(
     column: $table.isGroup,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get members => $composableBuilder(
+    column: $table.members,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3383,6 +3439,11 @@ class $$OshisTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get members => $composableBuilder(
+    column: $table.members,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3428,6 +3489,9 @@ class $$OshisTableAnnotationComposer
 
   GeneratedColumn<bool> get isGroup =>
       $composableBuilder(column: $table.isGroup, builder: (column) => column);
+
+  GeneratedColumn<String> get members =>
+      $composableBuilder(column: $table.members, builder: (column) => column);
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3553,6 +3617,7 @@ class $$OshisTableTableManager
                 Value<String> category = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 Value<bool> isGroup = const Value.absent(),
+                Value<String?> members = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String?> lastViewedAt = const Value.absent(),
               }) => OshisCompanion(
@@ -3564,6 +3629,7 @@ class $$OshisTableTableManager
                 category: category,
                 memo: memo,
                 isGroup: isGroup,
+                members: members,
                 createdAt: createdAt,
                 lastViewedAt: lastViewedAt,
               ),
@@ -3577,6 +3643,7 @@ class $$OshisTableTableManager
                 required String category,
                 Value<String?> memo = const Value.absent(),
                 Value<bool> isGroup = const Value.absent(),
+                Value<String?> members = const Value.absent(),
                 required String createdAt,
                 Value<String?> lastViewedAt = const Value.absent(),
               }) => OshisCompanion.insert(
@@ -3588,6 +3655,7 @@ class $$OshisTableTableManager
                 category: category,
                 memo: memo,
                 isGroup: isGroup,
+                members: members,
                 createdAt: createdAt,
                 lastViewedAt: lastViewedAt,
               ),

@@ -10,6 +10,9 @@ class Oshis extends Table {
   TextColumn get category => text()(); // アイドル/俳優/VTuber/アニメ/その他
   TextColumn get memo => text().nullable()();
   BoolColumn get isGroup => boolean().withDefault(const Constant(false))();
+  /// グループメンバー名のリスト（JSON 配列文字列, nullable）
+  /// 例: '["田中太郎","山田花子"]'
+  TextColumn get members => text().nullable()();
   TextColumn get createdAt => text()();
   TextColumn get lastViewedAt => text().nullable()();
 }

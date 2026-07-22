@@ -9,6 +9,30 @@ import '../../../shared/services/preferences_service.dart';
 import '../export_service.dart';
 
 // ---------------------------------------------------------------------------
+// フォントスケール Provider（初期値は main.dart で SharedPreferences から注入）
+// ---------------------------------------------------------------------------
+
+/// 選択可能なフォントスケール選択肢
+const _fontScaleOptions = [
+  _FontScaleOption(scale: 0.85, label: '小', description: 'やや小さめ'),
+  _FontScaleOption(scale: 1.0, label: '標準', description: 'デフォルト'),
+  _FontScaleOption(scale: 1.15, label: '大', description: 'やや大きめ'),
+  _FontScaleOption(scale: 1.3, label: '特大', description: 'さらに大きく'),
+];
+
+class _FontScaleOption {
+  final double scale;
+  final String label;
+  final String description;
+  const _FontScaleOption(
+      {required this.scale,
+      required this.label,
+      required this.description});
+}
+
+final fontScaleProvider = StateProvider<double>((ref) => 1.0);
+
+// ---------------------------------------------------------------------------
 // 通知設定 Provider（初期値は main.dart で SharedPreferences から注入）
 // ---------------------------------------------------------------------------
 
@@ -18,6 +42,14 @@ final savingReminderHourProvider =
     StateProvider<int>((ref) => 20);
 final savingReminderMinuteProvider =
     StateProvider<int>((ref) => 0);
+
+/// 誕生日通知 ON/OFF（初期値は main.dart で注入）
+final birthdayNotifEnabledProvider =
+    StateProvider<bool>((ref) => true);
+
+/// イベント前日通知 ON/OFF（初期値は main.dart で注入）
+final eventReminderEnabledProvider =
+    StateProvider<bool>((ref) => true);
 
 // ---------------------------------------------------------------------------
 // SettingsPage
@@ -35,6 +67,7 @@ class SettingsPage extends ConsumerWidget {
           // ---- 表示設定 ----
           _SectionHeader(title: '表示設定'),
           _ThemeSection(),
+          _FontSizeSection(),
 
           // ---- 通知設定 ----
           _SectionHeader(title: '通知設定'),
@@ -92,6 +125,61 @@ class _ThemeSection extends ConsumerWidget {
             await PreferencesService.instance.setThemeMode(v.index);
           },
           secondary: const Icon(Icons.dark_mode),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// フォントサイズセクション
+// ---------------------------------------------------------------------------
+
+class _FontSizeSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentScale = ref.watch(fontScaleProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // プレビューテキスト
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Text(
+            'プレビュー: 推しログで記録しよう',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        // SegmentedButton で選択
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: SegmentedButton<double>(
+            segments: _fontScaleOptions
+                .map(
+                  (o) => ButtonSegment<double>(
+                    value: o.scale,
+                    label: Text(o.label),
+                    tooltip: o.description,
+                  ),
+                )
+                .toList(),
+            selected: {currentScale},
+            onSelectionChanged: (Set<double> selected) async {
+              final scale = selected.first;
+              ref.read(fontScaleProvider.notifier).state = scale;
+              await PreferencesService.instance.setFontScale(scale);
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(
+            '現在: ${_fontScaleOptions.firstWhere((o) => (o.scale - currentScale).abs() < 0.01, orElse: () => _fontScaleOptions[1]).description}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
         ),
       ],
     );
@@ -186,7 +274,63 @@ class _NotificationSection extends ConsumerWidget {
             }
           },
         ),
+
+        // --- 誕生日通知 ---
+        const Divider(indent: 16, endIndent: 16),
+        _BirthdayNotifTile(),
+
+        // --- イベント前日通知 ---
+        _EventReminderTile(),
       ],
+    );
+  }
+}
+
+class _BirthdayNotifTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(birthdayNotifEnabledProvider);
+    return SwitchListTile(
+      title: const Text('推しの誕生日通知'),
+      subtitle: Text(kIsWeb
+          ? '起動時に誕生日バナーを表示する'
+          : '誕生日当日の朝 8:00 にお知らせ'),
+      value: enabled,
+      secondary: const Icon(Icons.cake),
+      onChanged: (v) async {
+        ref.read(birthdayNotifEnabledProvider.notifier).state = v;
+        await PreferencesService.instance.setBirthdayNotifEnabled(v);
+        // ネイティブ: OFF にしたら誕生日通知のみ個別にキャンセル
+        if (!kIsWeb && !v) {
+          final db = ref.read(databaseProvider);
+          final oshis = await (db.select(db.oshis)
+                ..where((t) => t.birthday.isNotNull()))
+              .get();
+          for (final oshi in oshis) {
+            await NotificationService.instance
+                .cancelBirthdayNotification(oshi.id);
+          }
+        }
+      },
+    );
+  }
+}
+
+class _EventReminderTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(eventReminderEnabledProvider);
+    return SwitchListTile(
+      title: const Text('イベント前日リマインド'),
+      subtitle: Text(kIsWeb
+          ? '起動時にイベント前日バナーを表示する'
+          : 'イベント前日の夜 20:00 にお知らせ'),
+      value: enabled,
+      secondary: const Icon(Icons.event),
+      onChanged: (v) async {
+        ref.read(eventReminderEnabledProvider.notifier).state = v;
+        await PreferencesService.instance.setEventReminderEnabled(v);
+      },
     );
   }
 }
@@ -349,6 +493,17 @@ class _AppInfoSection extends StatelessWidget {
           leading: const Icon(Icons.favorite_outline),
           title: const Text('推しログについて'),
           subtitle: const Text('推し活専用の活動記録・家計簿アプリ'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.description_outlined),
+          title: const Text('ライセンス'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => showLicensePage(
+            context: context,
+            applicationName: '推しログ',
+            applicationVersion: '1.0.0',
+            applicationLegalese: '© 2026 Oshi Log',
+          ),
         ),
       ],
     );

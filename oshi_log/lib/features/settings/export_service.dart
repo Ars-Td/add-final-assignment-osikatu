@@ -4,11 +4,12 @@ import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
-// 条件付きインポート: Web では download_web.dart、それ以外は download_stub.dart
-import 'download_stub.dart'
-    if (dart.library.html) 'download_web.dart';
+// 条件付きインポート:
+//   Web → download_web.dart (downloadFile でブラウザダウンロード)
+//   ネイティブ → share_native.dart (share_plus で OS Share シート)
+import 'share_native.dart'
+    if (dart.library.js_interop) 'download_web.dart';
 
 import '../../shared/database/app_database.dart';
 
@@ -121,11 +122,15 @@ class ExportService {
           .map((o) => {
                 'id': o.id,
                 'name': o.name,
+                'iconPath': o.iconPath,
                 'category': o.category,
                 'coverColor': o.coverColor,
                 'birthday': o.birthday,
                 'memo': o.memo,
+                'isGroup': o.isGroup,
+                'members': o.members,
                 'createdAt': o.createdAt,
+                'lastViewedAt': o.lastViewedAt,
               })
           .toList(),
       'events': events
@@ -138,6 +143,7 @@ class ExportService {
                 'category': e.category,
                 'totalAmount': e.totalAmount,
                 'memo': e.memo,
+                'photoPaths': e.photoPaths,
                 'createdAt': e.createdAt,
               })
           .toList(),
@@ -159,6 +165,8 @@ class ExportService {
                 'amount': g.amount,
                 'quantity': g.quantity,
                 'shop': g.shop,
+                'imagePath': g.imagePath,
+                'photoPaths': g.photoPaths,
                 'memo': g.memo,
                 'createdAt': g.createdAt,
               })
@@ -193,15 +201,19 @@ class ExportService {
   // ダウンロード / 共有
   // ---------------------------------------------------------------------------
 
-  /// ファイルをダウンロード（Web）またはクリップボードにコピー（ネイティブ）
+  /// ファイルをダウンロード（Web）または OS Share シートで共有（ネイティブ）
+  ///
+  /// - Web: `download_web.dart` の `downloadFile` でブラウザダウンロード
+  /// - iOS / Android: `share_native.dart` の `shareFile` で OS Share シートを表示
   static Future<void> downloadOrCopy(
     BuildContext context, {
     required String content,
     required String filename,
     required String mimeType,
   }) async {
+    final bytes = utf8.encode(content);
     if (kIsWeb) {
-      final bytes = utf8.encode(content);
+      // Web: ブラウザのダウンロードダイアログ
       downloadFile(bytes, filename, mimeType);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -209,14 +221,8 @@ class ExportService {
         );
       }
     } else {
-      // ネイティブ: クリップボードにコピーしてスナックバーで通知
-      // 本番では share_plus を使って共有ダイアログを出すのが望ましい
-      await Clipboard.setData(ClipboardData(text: content));
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$filename をクリップボードにコピーしました')),
-        );
-      }
+      // ネイティブ: OS Share シート
+      await shareFile(bytes, filename, mimeType);
     }
   }
 }

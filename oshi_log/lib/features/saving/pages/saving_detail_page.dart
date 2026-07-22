@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,8 +49,10 @@ class _PlanBody extends ConsumerStatefulWidget {
   ConsumerState<_PlanBody> createState() => _PlanBodyState();
 }
 
-class _PlanBodyState extends ConsumerState<_PlanBody> {
+class _PlanBodyState extends ConsumerState<_PlanBody>
+    with SingleTickerProviderStateMixin {
   late final TextEditingController _amountCtrl;
+  late final AnimationController _confettiCtrl;
   int _calendarYear = DateTime.now().year;
   int _calendarMonth = DateTime.now().month;
 
@@ -57,11 +61,16 @@ class _PlanBodyState extends ConsumerState<_PlanBody> {
     super.initState();
     _amountCtrl = TextEditingController(
         text: widget.plan.dailyAmount.toString());
+    _confettiCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    );
   }
 
   @override
   void dispose() {
     _amountCtrl.dispose();
+    _confettiCtrl.dispose();
     super.dispose();
   }
 
@@ -86,10 +95,11 @@ class _PlanBodyState extends ConsumerState<_PlanBody> {
             createdAt: DateTime.now().toIso8601String(),
           ),
         );
-    // Providers を再取得
+    // Providers を再取得（一覧タブの進捗カードも更新するため planListProvider も含む）
     ref.invalidate(recordsProvider(widget.plan.id));
     ref.invalidate(totalAmountProvider(widget.plan.id));
     ref.invalidate(streakProvider(widget.plan.id));
+    ref.invalidate(planListProvider(widget.oshiId));
 
     // 目標達成チェック
     final goalAmount = widget.plan.goalAmount;
@@ -98,6 +108,9 @@ class _PlanBodyState extends ConsumerState<_PlanBody> {
           .read(savingRepositoryProvider)
           .getTotalAmount(widget.plan.id);
       if (newTotal >= goalAmount && context.mounted) {
+        // お祝いアニメーションを起動
+        _confettiCtrl.forward(from: 0.0);
+
         // Web: バナー / ネイティブ: システム通知
         if (kIsWeb) {
           showGoalAchievedBanner(context, widget.plan.name);
@@ -155,7 +168,9 @@ class _PlanBodyState extends ConsumerState<_PlanBody> {
           ),
         ],
       ),
-      body: ListView(
+      body: Stack(
+        children: [
+          ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ---- 進捗セクション ----
@@ -330,9 +345,150 @@ class _PlanBodyState extends ConsumerState<_PlanBody> {
           _MonthlyTotals(planId: plan.id),
           const SizedBox(height: 32),
         ],
+          ),
+          // 紙吹雪オーバーレイ（目標達成時）
+          _ConfettiOverlay(controller: _confettiCtrl),
+        ],
       ),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// 紙吹雪オーバーレイ（目標達成時お祝いアニメーション）
+// ---------------------------------------------------------------------------
+
+/// パーティクル 1 個分のデータ
+class _Particle {
+  final double x;      // 開始 X（0.0〜1.0）
+  final double speed;  // 落下速度係数
+  final double size;   // 紙片サイズ
+  final Color color;
+  final double rotationSpeed;
+  final double angle;  // 初期角度
+
+  const _Particle({
+    required this.x,
+    required this.speed,
+    required this.size,
+    required this.color,
+    required this.rotationSpeed,
+    required this.angle,
+  });
+}
+
+class _ConfettiOverlay extends StatefulWidget {
+  final AnimationController controller;
+  const _ConfettiOverlay({required this.controller});
+
+  @override
+  State<_ConfettiOverlay> createState() => _ConfettiOverlayState();
+}
+
+class _ConfettiOverlayState extends State<_ConfettiOverlay> {
+  static const _particleCount = 80;
+  static const _colors = [
+    Color(0xFFE91E8C), // ピンク
+    Color(0xFFFFD700), // ゴールド
+    Color(0xFF26A69A), // ティール
+    Color(0xFF5C6BC0), // インディゴ
+    Color(0xFFFF7043), // オレンジ
+    Color(0xFF66BB6A), // グリーン
+    Color(0xFFAB47BC), // パープル
+  ];
+
+  late final List<_Particle> _particles;
+
+  @override
+  void initState() {
+    super.initState();
+    final rng = math.Random();
+    _particles = List.generate(_particleCount, (_) {
+      return _Particle(
+        x: rng.nextDouble(),
+        speed: 0.4 + rng.nextDouble() * 0.6,
+        size: 6 + rng.nextDouble() * 8,
+        color: _colors[rng.nextInt(_colors.length)],
+        rotationSpeed: (rng.nextDouble() - 0.5) * 8,
+        angle: rng.nextDouble() * math.pi * 2,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) {
+        final t = widget.controller.value;
+        if (t == 0.0 || t == 1.0) return const SizedBox.shrink();
+        return IgnorePointer(
+          child: CustomPaint(
+            painter: _ConfettiPainter(
+              particles: _particles,
+              progress: t,
+            ),
+            size: Size.infinite,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final List<_Particle> particles;
+  final double progress; // 0.0〜1.0
+
+  const _ConfettiPainter({
+    required this.particles,
+    required this.progress,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    // フェードアウト: 0.7以降から透明に
+    final opacity = progress < 0.7
+        ? 1.0
+        : 1.0 - ((progress - 0.7) / 0.3).clamp(0.0, 1.0);
+
+    for (final p in particles) {
+      // Y: progress と speed に応じて上→下
+      final y = (progress * p.speed * 1.4 - 0.05) * size.height;
+      if (y < -p.size || y > size.height + p.size) continue;
+
+      // X: 緩やかに揺れる
+      final wobble = math.sin(progress * math.pi * 4 + p.angle) * 12;
+      final x = p.x * size.width + wobble;
+
+      // 回転
+      final rotation = progress * p.rotationSpeed * math.pi;
+
+      paint.color = p.color.withValues(alpha: opacity);
+
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(rotation);
+
+      // 紙片（長方形）
+      canvas.drawRect(
+        Rect.fromCenter(
+          center: Offset.zero,
+          width: p.size,
+          height: p.size * 0.5,
+        ),
+        paint,
+      );
+
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 // ---------------------------------------------------------------------------

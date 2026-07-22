@@ -64,6 +64,15 @@ class EventRepository {
     return rows.fold<int>(0, (sum, e) => sum + e.totalAmount);
   }
 
+  /// 今日以降に開催されるイベントを全推し対象で取得（前日通知スケジュール用）
+  ///
+  /// [from] 以降（当日含む）のイベントを日付昇順で返す。
+  Future<List<Event>> getUpcomingEvents({required String from}) =>
+      (_db.select(_db.events)
+            ..where((t) => t.date.isBiggerOrEqualValue(from))
+            ..orderBy([(t) => OrderingTerm.asc(t.date)]))
+          .get();
+
   /// イベントをウォッチ
   Stream<List<Event>> watchEventsByOshi(int oshiId) =>
       (_db.select(_db.events)

@@ -67,9 +67,10 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
 
-    // 保存
+    // 保存（invalidate 後のプロバイダ再取得で無限アニメーションになるため pump を使用）
     await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     final events = await db.select(db.events).get();
     expect(events.length, 1);

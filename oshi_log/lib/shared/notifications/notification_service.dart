@@ -158,6 +158,112 @@ class NotificationService {
     );
   }
 
+  /// 誕生日通知 ID: 20_000_000 + oshiId（衝突なし）
+  static int _birthdayNotifId(int oshiId) => 20000000 + oshiId;
+
+  /// イベント前日通知 ID: 30_000_000 + eventId（衝突なし）
+  static int _eventNotifId(int eventId) => 30000000 + eventId;
+
+  /// 推しの誕生日通知をスケジュール（ネイティブのみ）
+  ///
+  /// 毎年誕生日当日 8:00 に通知を送る。
+  Future<void> scheduleBirthdayNotification(
+      int oshiId, String oshiName, DateTime birthday) async {
+    if (kIsWeb) return;
+    if (!_initialized) await initialize();
+
+    final notifId = _birthdayNotifId(oshiId);
+    // まず既存の通知をキャンセル
+    await _plugin.cancel(notifId);
+
+    // 今年の誕生日を計算
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      birthday.month,
+      birthday.day,
+      8, // 朝 8:00
+      0,
+    );
+    // 今年の誕生日が過ぎていたら来年にする
+    if (scheduled.isBefore(now)) {
+      scheduled = tz.TZDateTime(
+        tz.local,
+        now.year + 1,
+        birthday.month,
+        birthday.day,
+        8,
+        0,
+      );
+    }
+
+    await _plugin.zonedSchedule(
+      notifId,
+      '🎉 今日は $oshiName の誕生日！',
+      'おめでとうございます！推しへの想いを記録しましょう',
+      scheduled,
+      _details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime, // 毎年繰り返し
+    );
+  }
+
+  /// 推しの誕生日通知をキャンセル
+  Future<void> cancelBirthdayNotification(int oshiId) async {
+    if (kIsWeb) return;
+    if (!_initialized) return;
+    await _plugin.cancel(_birthdayNotifId(oshiId));
+  }
+
+  /// イベント前日リマインドをスケジュール（ネイティブのみ）
+  ///
+  /// イベント前日の 20:00 に通知を送る。
+  /// 既に過去のイベントや当日以降の日付には通知しない。
+  Future<void> scheduleEventReminder(
+      int eventId, String eventName, DateTime eventDate) async {
+    if (kIsWeb) return;
+    if (!_initialized) await initialize();
+
+    final notifId = _eventNotifId(eventId);
+    await _plugin.cancel(notifId);
+
+    final now = tz.TZDateTime.now(tz.local);
+    // 前日 20:00
+    final reminderDate = eventDate.subtract(const Duration(days: 1));
+    final scheduled = tz.TZDateTime(
+      tz.local,
+      reminderDate.year,
+      reminderDate.month,
+      reminderDate.day,
+      20,
+      0,
+    );
+
+    // 通知時刻が過去なら何もしない
+    if (scheduled.isBefore(now)) return;
+
+    await _plugin.zonedSchedule(
+      notifId,
+      '📅 明日はイベントの日！',
+      '「$eventName」は明日です。準備はできていますか？',
+      scheduled,
+      _details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  /// イベント前日リマインドをキャンセル
+  Future<void> cancelEventReminder(int eventId) async {
+    if (kIsWeb) return;
+    if (!_initialized) return;
+    await _plugin.cancel(_eventNotifId(eventId));
+  }
+
   /// 貯金リマインダーのスケジュールをキャンセル
   Future<void> cancelSavingReminder() async {
     if (kIsWeb) return;

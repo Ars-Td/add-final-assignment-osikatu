@@ -34,6 +34,44 @@ class GoodsRepository {
         .get();
   }
 
+  /// 月 + カテゴリ 複合フィルタ
+  Future<List<Good>> getGoodsByMonthAndCategory(
+      int oshiId, int year, int month, String category) {
+    final prefix = '$year-${month.toString().padLeft(2, '0')}';
+    return (_db.select(_db.goods)
+          ..where((t) =>
+              t.oshiId.equals(oshiId) &
+              t.purchaseDate.like('$prefix%') &
+              t.category.equals(category))
+          ..orderBy([(t) => OrderingTerm.asc(t.purchaseDate)]))
+        .get();
+  }
+
+  /// 期間フィルタ（from〜to の YYYY-MM-DD 文字列で範囲指定）
+  Future<List<Good>> getGoodsByDateRange(
+      int oshiId, String fromDate, String toDate) {
+    return (_db.select(_db.goods)
+          ..where((t) =>
+              t.oshiId.equals(oshiId) &
+              t.purchaseDate.isBiggerOrEqualValue(fromDate) &
+              t.purchaseDate.isSmallerOrEqualValue(toDate))
+          ..orderBy([(t) => OrderingTerm.asc(t.purchaseDate)]))
+        .get();
+  }
+
+  /// 期間 + カテゴリ 複合フィルタ
+  Future<List<Good>> getGoodsByDateRangeAndCategory(
+      int oshiId, String fromDate, String toDate, String category) {
+    return (_db.select(_db.goods)
+          ..where((t) =>
+              t.oshiId.equals(oshiId) &
+              t.purchaseDate.isBiggerOrEqualValue(fromDate) &
+              t.purchaseDate.isSmallerOrEqualValue(toDate) &
+              t.category.equals(category))
+          ..orderBy([(t) => OrderingTerm.asc(t.purchaseDate)]))
+        .get();
+  }
+
   /// グッズ単体取得
   Future<Good?> getGoodsById(int id) =>
       (_db.select(_db.goods)..where((t) => t.id.equals(id)))

@@ -50,6 +50,7 @@ class _MonthlyTab extends ConsumerWidget {
     final month = ref.watch(selectedMonthProvider);
     final totalAsync = ref.watch(monthlyTotalProvider);
     final byOshiAsync = ref.watch(monthlyByOshiProvider);
+    final categoryAsync = ref.watch(monthlyCategoryProvider);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -69,7 +70,19 @@ class _MonthlyTab extends ConsumerWidget {
         ),
         const SizedBox(height: 24),
 
-        // 推しごと内訳
+        // カテゴリ別棒グラフ（イベント費・グッズ費）
+        categoryAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('エラー: $e'),
+          data: (categories) {
+            final hasData = categories.any((c) => c.amount > 0);
+            if (!hasData) return const SizedBox.shrink();
+            return _CategoryBarSection(categories: categories);
+          },
+        ),
+        const SizedBox(height: 24),
+
+        // 推しごと内訳（円グラフ）
         byOshiAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Text('エラー: $e'),
@@ -120,6 +133,153 @@ class _MonthSelector extends ConsumerWidget {
               ref.read(selectedMonthProvider.notifier).state = month + 1;
             }
           },
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// カテゴリ別棒グラフ（イベント費・グッズ費）
+// ---------------------------------------------------------------------------
+
+class _CategoryBarSection extends StatelessWidget {
+  final List<CategoryAmount> categories;
+  const _CategoryBarSection({required this.categories});
+
+  // カテゴリごとの色
+  static const _colors = [
+    Color(0xFF5C6BC0), // イベント費: インディゴ
+    Color(0xFF26A69A), // グッズ費: ティール
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final maxVal = categories
+        .map((c) => c.amount)
+        .reduce((a, b) => a > b ? a : b)
+        .toDouble();
+    final effectiveMax = maxVal == 0 ? 1000.0 : maxVal * 1.25;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('カテゴリ別内訳',
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+
+        SizedBox(
+          height: 180,
+          child: BarChart(
+            BarChartData(
+              maxY: effectiveMax,
+              barGroups: categories.asMap().entries.map((entry) {
+                final i = entry.key;
+                final cat = entry.value;
+                return BarChartGroupData(
+                  x: i,
+                  barRods: [
+                    BarChartRodData(
+                      toY: cat.amount.toDouble(),
+                      color: _colors[i % _colors.length],
+                      width: 40,
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(6)),
+                    ),
+                  ],
+                );
+              }).toList(),
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      final i = value.toInt();
+                      if (i < 0 || i >= categories.length) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          categories[i].label,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 52,
+                    getTitlesWidget: (value, meta) {
+                      if (value == 0) return const SizedBox.shrink();
+                      return Text(
+                        '¥${formatAmount(value.toInt())}',
+                        style: const TextStyle(fontSize: 9),
+                      );
+                    },
+                  ),
+                ),
+                rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+              ),
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final cat = categories[group.x];
+                    return BarTooltipItem(
+                      '${cat.label}\n¥${formatAmount(rod.toY.toInt())}',
+                      const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              gridData: const FlGridData(show: true),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // 凡例
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: categories.asMap().entries.map((entry) {
+            final i = entry.key;
+            final cat = entry.value;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: _colors[i % _colors.length],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(cat.label,
+                      style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(width: 4),
+                  Text(
+                    '¥${formatAmount(cat.amount)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
@@ -413,6 +573,7 @@ class _OshiTab extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           children: [
             // 推しドロップダウン
+            // ignore: deprecated_member_use
             DropdownButtonFormField<int>(
               value: effectiveId,
               decoration: const InputDecoration(

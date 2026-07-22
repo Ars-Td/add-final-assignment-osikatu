@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/notifications/notification_service.dart';
 import '../../../shared/utils/format_utils.dart';
 import '../../../shared/utils/photo_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
@@ -53,6 +54,11 @@ class EventDetailPage extends ConsumerWidget {
                       await ref
                           .read(eventRepositoryProvider)
                           .deleteEvent(eventId);
+                      // 前日通知もキャンセル
+                      await NotificationService.instance
+                          .cancelEventReminder(eventId);
+                      // 一覧を最新状態に更新
+                      ref.invalidate(eventListProvider(oshiId));
                       if (context.mounted) context.pop();
                     }
                   }
@@ -245,15 +251,26 @@ class _FullScreenPhotoPage extends StatefulWidget {
 
 class _FullScreenPhotoPageState extends State<_FullScreenPhotoPage> {
   late final PageController _ctrl;
+  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _ctrl = PageController(initialPage: widget.initialIndex);
+    _ctrl.addListener(_onPageChanged);
+  }
+
+  void _onPageChanged() {
+    final page = _ctrl.page?.round();
+    if (page != null && page != _currentIndex) {
+      setState(() => _currentIndex = page);
+    }
   }
 
   @override
   void dispose() {
+    _ctrl.removeListener(_onPageChanged);
     _ctrl.dispose();
     super.dispose();
   }
@@ -265,7 +282,7 @@ class _FullScreenPhotoPageState extends State<_FullScreenPhotoPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text('${widget.initialIndex + 1} / ${widget.paths.length}'),
+        title: Text('${_currentIndex + 1} / ${widget.paths.length}'),
       ),
       body: PageView.builder(
         controller: _ctrl,

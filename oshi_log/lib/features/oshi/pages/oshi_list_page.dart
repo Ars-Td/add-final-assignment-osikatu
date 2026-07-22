@@ -3,14 +3,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/database/app_database.dart';
+import '../../../shared/database/database_provider.dart';
+import '../../../shared/notifications/web_banner_service.dart';
 import '../../../shared/widgets/oshi_icon.dart';
 import '../oshi_providers.dart';
 
-class OshiListPage extends ConsumerWidget {
+class OshiListPage extends ConsumerStatefulWidget {
   const OshiListPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OshiListPage> createState() => _OshiListPageState();
+}
+
+class _OshiListPageState extends ConsumerState<OshiListPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 画面描画後に Web バナーチェックを実行（1 セッション 1 回のみ）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final db = ref.read(databaseProvider);
+      WebBannerService.instance.showStartupBanners(context, db);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final oshiListAsync = ref.watch(oshiListProvider);
     final sort = ref.watch(oshiSortProvider);
 

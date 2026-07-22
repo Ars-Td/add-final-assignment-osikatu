@@ -71,4 +71,36 @@ void main() {
     expect(find.text('テストCD'), findsOneWidget);
     expect(find.text('2026/08/01　CD'), findsOneWidget);
   });
+
+  testWidgets('グリッド/リスト切り替えボタンでビューが変わる', (tester) async {
+    await db.into(db.goods).insert(GoodsCompanion.insert(
+          oshiId: oshiId,
+          name: 'テストグッズ',
+          purchaseDate: '2026-08-01',
+          category: 'アパレル',
+          amount: 5000,
+          createdAt: DateTime.now().toIso8601String(),
+        ));
+
+    await tester.pumpWidget(buildGoodsListTabApp(oshiId, db));
+    await tester.pumpAndSettle();
+
+    // 初期状態はリスト表示 → GridView がない
+    expect(find.byType(GridView), findsNothing);
+    expect(find.byType(ListView), findsOneWidget);
+
+    // グリッド表示に切り替え
+    await tester.tap(find.byTooltip('グリッド表示'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GridView), findsOneWidget);
+    expect(find.byType(ListView), findsNothing);
+
+    // リスト表示に戻す
+    await tester.tap(find.byTooltip('リスト表示'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GridView), findsNothing);
+    expect(find.byType(ListView), findsOneWidget);
+  });
 }

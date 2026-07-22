@@ -90,6 +90,13 @@ class OshiRepository {
     });
   }
 
+  /// 誕生日が設定されている推しを全件取得
+  Future<List<Oshi>> getOshisWithBirthday() =>
+      (_db.select(_db.oshis)
+            ..where((t) => t.birthday.isNotNull())
+            ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+          .get();
+
   /// 推し一覧をウォッチ（リアクティブ）
   Stream<List<Oshi>> watchAllOshis() =>
       (_db.select(_db.oshis)..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))

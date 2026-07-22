@@ -118,6 +118,32 @@ void main() {
       expect(monthly.length, 12);
     });
 
+    test('カテゴリ別内訳でイベント費とグッズ費を分けて返す', () async {
+      await db.into(db.events).insert(EventsCompanion.insert(
+            oshiId: oshiId,
+            name: 'コンサート',
+            date: '2026-07-15',
+            category: 'コンサート',
+            totalAmount: const Value(5000),
+            createdAt: DateTime.now().toIso8601String(),
+          ));
+      await db.into(db.goods).insert(GoodsCompanion.insert(
+            oshiId: oshiId,
+            name: 'グッズ',
+            purchaseDate: '2026-07-10',
+            category: 'CD',
+            amount: 2000,
+            createdAt: DateTime.now().toIso8601String(),
+          ));
+
+      final cats = await repo.getMonthlyCategoryBreakdown(2026, 7);
+      expect(cats.length, 2);
+      final event = cats.firstWhere((c) => c.label == 'イベント費');
+      final goods = cats.firstWhere((c) => c.label == 'グッズ費');
+      expect(event.amount, 5000);
+      expect(goods.amount, 2000);
+    });
+
     test('推しへの累計支出を取得できる', () async {
       await db.into(db.events).insert(EventsCompanion.insert(
             oshiId: oshiId,

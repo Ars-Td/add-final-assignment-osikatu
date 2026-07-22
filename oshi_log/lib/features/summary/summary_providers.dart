@@ -34,6 +34,15 @@ final monthlyByOshiProvider =
   return repo.getMonthlyByOshi(year, month);
 });
 
+/// 選択月のカテゴリ別支出内訳（イベント費・グッズ費）
+final monthlyCategoryProvider =
+    FutureProvider<List<CategoryAmount>>((ref) {
+  final repo = ref.watch(summaryRepositoryProvider);
+  final year = ref.watch(selectedYearProvider);
+  final month = ref.watch(selectedMonthProvider);
+  return repo.getMonthlyCategoryBreakdown(year, month);
+});
+
 // --- 年次 ---
 
 /// 年間の月別支出（12要素のリスト）
