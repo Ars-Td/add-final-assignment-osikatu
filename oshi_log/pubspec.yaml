@@ -15,7 +15,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
 
   # ローカル DB（全Platform対応 SQLite ORM）
-  drift: ^2.22.1
+  drift: 2.31.0
   drift_flutter: ^0.2.4
   sqlite3_flutter_libs: ^0.5.24
   path_provider: ^2.1.5
@@ -59,7 +59,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
   # drift コード生成
-  drift_dev: ^2.22.1
+  drift_dev: 2.31.0
   build_runner: ^2.4.13
 
 flutter:
