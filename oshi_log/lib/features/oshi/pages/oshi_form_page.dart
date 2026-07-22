@@ -132,28 +132,13 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
   }
 
   Future<void> _pickColor() async {
-    Color tmp = _coverColor;
-    await showDialog<void>(
+    final result = await showDialog<Color>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('カバーカラーを選択'),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            pickerColor: _coverColor,
-            onColorChanged: (c) => tmp = c,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() => _coverColor = tmp);
-              Navigator.pop(context);
-            },
-            child: const Text('決定'),
-          ),
-        ],
-      ),
+      builder: (ctx) => _ColorPickerDialog(initialColor: _coverColor),
     );
+    if (result != null && mounted) {
+      setState(() => _coverColor = result);
+    }
   }
 
   Future<void> _pickBirthday() async {
@@ -446,6 +431,45 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// カラーピッカーダイアログ（独立した StatefulWidget）
+/// 親ウィジェットの setState を呼ばずにダイアログ内だけで状態管理する
+class _ColorPickerDialog extends StatefulWidget {
+  final Color initialColor;
+  const _ColorPickerDialog({required this.initialColor});
+
+  @override
+  State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
+}
+
+class _ColorPickerDialogState extends State<_ColorPickerDialog> {
+  late Color _current;
+
+  @override
+  void initState() {
+    super.initState();
+    _current = widget.initialColor;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('カバーカラーを選択'),
+      content: SingleChildScrollView(
+        child: ColorPicker(
+          pickerColor: _current,
+          onColorChanged: (c) => setState(() => _current = c),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(_current),
+          child: const Text('決定'),
+        ),
+      ],
     );
   }
 }
