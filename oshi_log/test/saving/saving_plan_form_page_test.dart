@@ -14,7 +14,7 @@ Widget buildSavingFormApp(
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) =>
+        builder: (_, _) =>
             SavingPlanFormPage(oshiId: oshiId, planId: planId),
       ),
     ],

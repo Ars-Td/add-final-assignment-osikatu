@@ -13,7 +13,7 @@ Widget buildEventFormApp({int oshiId = 1, int? eventId, AppDatabase? db}) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) =>
+        builder: (_, _) =>
             EventFormPage(oshiId: oshiId, eventId: eventId),
       ),
     ],

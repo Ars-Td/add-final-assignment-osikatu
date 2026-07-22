@@ -12,15 +12,15 @@ Widget buildSavingListTabApp(int oshiId, AppDatabase db) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => Scaffold(body: SavingListTab(oshiId: oshiId)),
+        builder: (_, _) => Scaffold(body: SavingListTab(oshiId: oshiId)),
       ),
       GoRoute(
         path: '/oshi/:id/saving/new',
-        builder: (_, __) => const SizedBox(),
+        builder: (_, _) => const SizedBox(),
       ),
       GoRoute(
         path: '/oshi/:id/saving/:sid',
-        builder: (_, __) => const SizedBox(),
+        builder: (_, _) => const SizedBox(),
       ),
     ],
   );

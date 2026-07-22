@@ -13,7 +13,7 @@ Widget buildGoodsFormApp({int oshiId = 1, int? goodsId, AppDatabase? db}) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) =>
+        builder: (_, _) =>
             GoodsFormPage(oshiId: oshiId, goodsId: goodsId),
       ),
     ],

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oshi_log/features/oshi/oshi_providers.dart';
 import 'package:oshi_log/features/oshi/pages/oshi_list_page.dart';
 import 'package:oshi_log/shared/database/app_database.dart';
 import 'package:oshi_log/shared/database/database_provider.dart';
@@ -15,10 +14,10 @@ Widget buildTestApp({AppDatabase? db}) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => const OshiListPage(),
+        builder: (_, _) => const OshiListPage(),
       ),
-      GoRoute(path: '/oshi/new', builder: (_, __) => const SizedBox()),
-      GoRoute(path: '/oshi/:id', builder: (_, __) => const SizedBox()),
+      GoRoute(path: '/oshi/new', builder: (_, _) => const SizedBox()),
+      GoRoute(path: '/oshi/:id', builder: (_, _) => const SizedBox()),
     ],
   );
   return ProviderScope(

@@ -12,15 +12,15 @@ Widget buildGoodsListTabApp(int oshiId, AppDatabase db) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => Scaffold(body: GoodsListTab(oshiId: oshiId)),
+        builder: (_, _) => Scaffold(body: GoodsListTab(oshiId: oshiId)),
       ),
       GoRoute(
         path: '/oshi/:id/goods/new',
-        builder: (_, __) => const SizedBox(),
+        builder: (_, _) => const SizedBox(),
       ),
       GoRoute(
         path: '/oshi/:id/goods/:gid',
-        builder: (_, __) => const SizedBox(),
+        builder: (_, _) => const SizedBox(),
       ),
     ],
   );

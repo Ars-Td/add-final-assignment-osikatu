@@ -13,7 +13,7 @@ Widget buildFormApp({int? oshiId, AppDatabase? db}) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => OshiFormPage(oshiId: oshiId),
+        builder: (_, _) => OshiFormPage(oshiId: oshiId),
       ),
     ],
   );

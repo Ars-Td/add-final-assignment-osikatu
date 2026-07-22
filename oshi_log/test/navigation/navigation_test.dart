@@ -23,17 +23,17 @@ GoRouter _buildTestRouter() => GoRouter(
             StatefulShellBranch(routes: [
               GoRoute(
                   path: '/',
-                  builder: (_, __) => const OshiListPage()),
+                  builder: (_, _) => const OshiListPage()),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
                   path: '/summary',
-                  builder: (_, __) => const SummaryPage()),
+                  builder: (_, _) => const SummaryPage()),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
                   path: '/settings',
-                  builder: (_, __) => const SettingsPage()),
+                  builder: (_, _) => const SettingsPage()),
             ]),
           ],
         ),
