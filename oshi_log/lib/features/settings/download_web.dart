@@ -19,3 +19,9 @@ void downloadFile(List<int> bytes, String filename, String mimeType) {
   anchor.remove();
   web.URL.revokeObjectURL(url);
 }
+
+/// ネイティブ用 `shareFile` と同じシグネチャのスタブ（Web では使わない）
+Future<void> shareFile(
+    List<int> bytes, String filename, String mimeType) async {
+  // Web では downloadFile を使用するため no-op
+}
