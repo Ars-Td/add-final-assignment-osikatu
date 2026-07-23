@@ -16,6 +16,36 @@ import '../oshi_providers.dart';
 
 const _categories = ['アイドル', '俳優', 'VTuber', 'アニメ', 'その他'];
 
+/// 年なし誕生日（月・日のみ）を保持するデータクラス
+class _BirthdayMD {
+  final int month;
+  final int day;
+  const _BirthdayMD(this.month, this.day);
+
+  /// "--MM-DD" 形式にエンコード
+  String encode() =>
+      '--${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+
+  /// "MM/DD" 形式で表示
+  String display() =>
+      '${month.toString().padLeft(2, '0')}/${day.toString().padLeft(2, '0')}';
+
+  /// DB 文字列からデコード（"--MM-DD" または "YYYY-MM-DD" の両方に対応）
+  static _BirthdayMD? tryParse(String? s) {
+    if (s == null) return null;
+    // "--MM-DD" 形式
+    final noYear = RegExp(r'^--(\d{2})-(\d{2})$');
+    final m1 = noYear.firstMatch(s);
+    if (m1 != null) {
+      return _BirthdayMD(int.parse(m1.group(1)!), int.parse(m1.group(2)!));
+    }
+    // "YYYY-MM-DD" / ISO 8601 形式（後方互換）
+    final dt = DateTime.tryParse(s);
+    if (dt != null) return _BirthdayMD(dt.month, dt.day);
+    return null;
+  }
+}
+
 /// members JSON エンコード
 String? _encodeMembers(List<String> members) {
   final trimmed = members.map((m) => m.trim()).where((m) => m.isNotEmpty).toList();
@@ -48,7 +78,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
 
   Color _coverColor = const Color(0xFFE91E8C);
   String _category = _categories[0];
-  DateTime? _birthday;
+  _BirthdayMD? _birthday;
   String? _iconPath;
   bool _loading = false;
 
@@ -78,7 +108,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
       _iconPath = oshi.iconPath;
       _isGroup = oshi.isGroup;
       if (oshi.birthday != null) {
-        _birthday = DateTime.tryParse(oshi.birthday!);
+        _birthday = _BirthdayMD.tryParse(oshi.birthday!);
       }
       // メンバーコントローラを復元
       for (final ctrl in _memberCtrls) {
@@ -142,11 +172,9 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
   }
 
   Future<void> _pickBirthday() async {
-    final picked = await showDatePicker(
+    final picked = await showDialog<_BirthdayMD>(
       context: context,
-      initialDate: _birthday ?? DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      builder: (ctx) => _BirthdayPickerDialog(initial: _birthday),
     );
     if (picked != null) setState(() => _birthday = picked);
   }
@@ -172,7 +200,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
           memo: Value(_memoCtrl.text.trim().isEmpty
               ? null
               : _memoCtrl.text.trim()),
-          birthday: Value(_birthday?.toIso8601String()),
+          birthday: Value(_birthday?.encode()),
           iconPath: Value(_iconPath),
           isGroup: Value(_isGroup),
           members: Value(membersJson),
@@ -186,7 +214,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
           memo: Value(_memoCtrl.text.trim().isEmpty
               ? null
               : _memoCtrl.text.trim()),
-          birthday: Value(_birthday?.toIso8601String()),
+          birthday: Value(_birthday?.encode()),
           iconPath: Value(_iconPath),
           isGroup: Value(_isGroup),
           members: Value(membersJson),
@@ -198,8 +226,11 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
       if (!kIsWeb) {
         final notif = NotificationService.instance;
         if (_birthday != null) {
+          // 通知スケジュールには年が必要なため仮の年 (2000) を使用
+          final bdForNotif =
+              DateTime(2000, _birthday!.month, _birthday!.day);
           await notif.scheduleBirthdayNotification(
-              savedId, _nameCtrl.text.trim(), _birthday!);
+              savedId, _nameCtrl.text.trim(), bdForNotif);
         } else {
           await notif.cancelBirthdayNotification(savedId);
         }
@@ -398,7 +429,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
                 title: const Text('誕生日'),
                 subtitle: Text(_birthday == null
                     ? '未設定'
-                    : '${_birthday!.year}/${_birthday!.month}/${_birthday!.day}'),
+                    : _birthday!.display()),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -431,6 +462,92 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 月・日のみ選択する誕生日ピッカーダイアログ
+class _BirthdayPickerDialog extends StatefulWidget {
+  final _BirthdayMD? initial;
+  const _BirthdayPickerDialog({this.initial});
+
+  @override
+  State<_BirthdayPickerDialog> createState() => _BirthdayPickerDialogState();
+}
+
+class _BirthdayPickerDialogState extends State<_BirthdayPickerDialog> {
+  late int _month;
+  late int _day;
+
+  /// 月ごとの最大日数（うるう年を考慮しない）
+  static const _daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+  int get _maxDay => _daysInMonth[_month - 1];
+
+  @override
+  void initState() {
+    super.initState();
+    _month = widget.initial?.month ?? 1;
+    _day = widget.initial?.day ?? 1;
+    // 月変更時に日が範囲外にならないよう補正
+    if (_day > _maxDay) _day = _maxDay;
+  }
+
+  void _onMonthChanged(int? v) {
+    if (v == null) return;
+    setState(() {
+      _month = v;
+      if (_day > _maxDay) _day = _maxDay;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('誕生日を選択'),
+      content: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 月
+          DropdownButton<int>(
+            value: _month,
+            items: List.generate(
+              12,
+              (i) => DropdownMenuItem(
+                value: i + 1,
+                child: Text('${i + 1}月'),
+              ),
+            ),
+            onChanged: _onMonthChanged,
+          ),
+          const SizedBox(width: 16),
+          // 日
+          DropdownButton<int>(
+            value: _day,
+            items: List.generate(
+              _maxDay,
+              (i) => DropdownMenuItem(
+                value: i + 1,
+                child: Text('${i + 1}日'),
+              ),
+            ),
+            onChanged: (v) {
+              if (v != null) setState(() => _day = v);
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('キャンセル'),
+        ),
+        TextButton(
+          onPressed: () =>
+              Navigator.of(context).pop(_BirthdayMD(_month, _day)),
+          child: const Text('決定'),
+        ),
+      ],
     );
   }
 }

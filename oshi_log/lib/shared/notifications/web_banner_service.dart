@@ -45,9 +45,9 @@ class WebBannerService {
 
     for (final oshi in oshis) {
       if (!context.mounted) return;
-      final bd = DateTime.tryParse(oshi.birthday!);
-      if (bd == null) continue;
-      if (_monthDay(bd) == todayMD) {
+      final bdMD = _parseBirthdayMonthDay(oshi.birthday!);
+      if (bdMD == null) continue;
+      if (bdMD == todayMD) {
         // 少し間を置いてから表示（画面描画完了後）
         await Future.delayed(const Duration(milliseconds: 600));
         if (context.mounted) {
@@ -102,4 +102,17 @@ class WebBannerService {
   /// "YYYY-MM-DD" 形式の文字列を返す
   String _dateStr(DateTime dt) =>
       '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+
+  /// DB の birthday 文字列から "MM-DD" 形式を取り出す。
+  /// "--MM-DD" 形式と "YYYY-MM-DD" / ISO 8601 形式の両方に対応。
+  String? _parseBirthdayMonthDay(String s) {
+    // "--MM-DD" 形式
+    final noYear = RegExp(r'^--(\d{2})-(\d{2})$');
+    final m = noYear.firstMatch(s);
+    if (m != null) return '${m.group(1)}-${m.group(2)}';
+    // "YYYY-MM-DD" / ISO 8601 形式（後方互換）
+    final dt = DateTime.tryParse(s);
+    if (dt != null) return _monthDay(dt);
+    return null;
+  }
 }
