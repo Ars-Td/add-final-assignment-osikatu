@@ -587,6 +587,7 @@ class _OshiTab extends ConsumerWidget {
                           children: [
                             OshiCircleAvatar(
                               iconPath: o.iconPath,
+                              iconData: o.iconData,
                               name: o.name,
                               coverColor: Color(o.coverColor),
                               radius: 14,

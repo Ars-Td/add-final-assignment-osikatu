@@ -127,9 +127,11 @@ class _OshiDetailPageState extends ConsumerState<OshiDetailPage> {
                             CircleAvatar(
                               radius: 48,
                               backgroundColor: Colors.white24,
-                              backgroundImage:
-                                  buildOshiIconImage(oshi.iconPath),
-                              child: oshi.iconPath == null
+                              backgroundImage: oshi.iconData != null
+                                  ? MemoryImage(oshi.iconData!)
+                                  : buildOshiIconImage(oshi.iconPath),
+                              child: (oshi.iconData == null &&
+                                      oshi.iconPath == null)
                                   ? Text(
                                       oshi.name.isNotEmpty
                                           ? oshi.name[0]

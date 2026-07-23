@@ -5,6 +5,8 @@ class Oshis extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get iconPath => text().nullable()();
+  /// Web 環境でのアイコン画像バイナリ（blob: URL はリロードで消えるため BLOB で保存）
+  BlobColumn get iconData => blob().nullable()();
   IntColumn get coverColor => integer()();
   TextColumn get birthday => text().nullable()();
   TextColumn get category => text()(); // アイドル/俳優/VTuber/アニメ/その他

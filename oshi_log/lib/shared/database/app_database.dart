@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -41,6 +41,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 5) {
             // v4 → v5: oshis テーブルに members カラムを追加（グループメンバー名 JSON）
             await m.addColumn(oshis, oshis.members);
+          }
+          if (from < 6) {
+            // v5 → v6: oshis テーブルに icon_data カラムを追加（Web 用画像 BLOB）
+            await m.addColumn(oshis, oshis.iconData);
           }
         },
         beforeOpen: (details) async {

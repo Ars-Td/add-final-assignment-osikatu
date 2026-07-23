@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -80,6 +81,8 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
   String _category = _categories[0];
   _BirthdayMD? _birthday;
   String? _iconPath;
+  /// Web 用: 選択した画像のバイナリ（リロード後も表示できるよう DB に保存）
+  Uint8List? _iconData;
   bool _loading = false;
 
   // グループ関連
@@ -106,6 +109,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
       _coverColor = Color(oshi.coverColor);
       _category = oshi.category;
       _iconPath = oshi.iconPath;
+      _iconData = oshi.iconData;
       _isGroup = oshi.isGroup;
       if (oshi.birthday != null) {
         _birthday = _BirthdayMD.tryParse(oshi.birthday!);
@@ -158,7 +162,20 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final xfile = await picker.pickImage(source: source, imageQuality: 80);
-    if (xfile != null) setState(() => _iconPath = xfile.path);
+    if (xfile == null) return;
+    if (kIsWeb) {
+      // Web: blob: URL はリロードで消えるためバイナリを読み込んで保存
+      final bytes = await xfile.readAsBytes();
+      setState(() {
+        _iconData = bytes;
+        _iconPath = null; // Web では path は使わない
+      });
+    } else {
+      setState(() {
+        _iconPath = xfile.path;
+        _iconData = null;
+      });
+    }
   }
 
   Future<void> _pickColor() async {
@@ -202,6 +219,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
               : _memoCtrl.text.trim()),
           birthday: Value(_birthday?.encode()),
           iconPath: Value(_iconPath),
+          iconData: Value(_iconData),
           isGroup: Value(_isGroup),
           members: Value(membersJson),
         ));
@@ -216,6 +234,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
               : _memoCtrl.text.trim()),
           birthday: Value(_birthday?.encode()),
           iconPath: Value(_iconPath),
+          iconData: Value(_iconData),
           isGroup: Value(_isGroup),
           members: Value(membersJson),
           createdAt: now,
@@ -277,8 +296,10 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage> {
                   CircleAvatar(
                     radius: 48,
                     backgroundColor: _coverColor.withValues(alpha: 0.2),
-                    backgroundImage: buildOshiIconImage(_iconPath),
-                    child: _iconPath == null
+                    backgroundImage: _iconData != null
+                        ? MemoryImage(_iconData!)
+                        : buildOshiIconImage(_iconPath),
+                    child: (_iconData == null && _iconPath == null)
                         ? Icon(Icons.person, size: 48, color: _coverColor)
                         : null,
                   ),

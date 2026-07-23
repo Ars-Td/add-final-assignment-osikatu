@@ -107,6 +107,7 @@ class _OshiCard extends StatelessWidget {
             // アイコン
             OshiCircleAvatar(
               iconPath: oshi.iconPath,
+              iconData: oshi.iconData,
               name: oshi.name,
               coverColor: color,
               radius: 28,

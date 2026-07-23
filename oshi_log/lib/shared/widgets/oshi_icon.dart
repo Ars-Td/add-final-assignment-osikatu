@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -18,9 +19,12 @@ ImageProvider? buildOshiIconImage(String? path) {
 }
 
 /// 推しアイコンの CircleAvatar。
-/// iconPath がある場合は画像、ない場合は coverColor＋頭文字を表示する。
+/// iconData (Uint8List) → iconPath → 頭文字 の優先順で表示する。
+/// Web ではリロード後も消えないよう iconData を優先する。
 class OshiCircleAvatar extends StatelessWidget {
   final String? iconPath;
+  /// Web 用: DB に保存した画像バイナリ（リロード後も表示可能）
+  final Uint8List? iconData;
   final String name;
   final Color coverColor;
   final double radius;
@@ -28,6 +32,7 @@ class OshiCircleAvatar extends StatelessWidget {
   const OshiCircleAvatar({
     super.key,
     required this.iconPath,
+    this.iconData,
     required this.name,
     required this.coverColor,
     this.radius = 28,
@@ -35,7 +40,9 @@ class OshiCircleAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = buildOshiIconImage(iconPath);
+    final ImageProvider? image = iconData != null
+        ? MemoryImage(iconData!)
+        : buildOshiIconImage(iconPath);
     return CircleAvatar(
       radius: radius,
       backgroundColor: coverColor.withValues(alpha: 0.2),

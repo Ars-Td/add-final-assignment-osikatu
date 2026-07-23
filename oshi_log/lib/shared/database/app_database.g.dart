@@ -41,6 +41,17 @@ class $OshisTable extends Oshis with TableInfo<$OshisTable, Oshi> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _iconDataMeta = const VerificationMeta(
+    'iconData',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> iconData = GeneratedColumn<Uint8List>(
+    'icon_data',
+    aliasedName,
+    true,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _coverColorMeta = const VerificationMeta(
     'coverColor',
   );
@@ -136,6 +147,7 @@ class $OshisTable extends Oshis with TableInfo<$OshisTable, Oshi> {
     id,
     name,
     iconPath,
+    iconData,
     coverColor,
     birthday,
     category,
@@ -172,6 +184,12 @@ class $OshisTable extends Oshis with TableInfo<$OshisTable, Oshi> {
       context.handle(
         _iconPathMeta,
         iconPath.isAcceptableOrUnknown(data['icon_path']!, _iconPathMeta),
+      );
+    }
+    if (data.containsKey('icon_data')) {
+      context.handle(
+        _iconDataMeta,
+        iconData.isAcceptableOrUnknown(data['icon_data']!, _iconDataMeta),
       );
     }
     if (data.containsKey('cover_color')) {
@@ -252,6 +270,10 @@ class $OshisTable extends Oshis with TableInfo<$OshisTable, Oshi> {
         DriftSqlType.string,
         data['${effectivePrefix}icon_path'],
       ),
+      iconData: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}icon_data'],
+      ),
       coverColor: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}cover_color'],
@@ -297,11 +319,17 @@ class Oshi extends DataClass implements Insertable<Oshi> {
   final int id;
   final String name;
   final String? iconPath;
+
+  /// Web 環境でのアイコン画像バイナリ（blob: URL はリロードで消えるため BLOB で保存）
+  final Uint8List? iconData;
   final int coverColor;
   final String? birthday;
   final String category;
   final String? memo;
   final bool isGroup;
+
+  /// グループメンバー名のリスト（JSON 配列文字列, nullable）
+  /// 例: '["田中太郎","山田花子"]'
   final String? members;
   final String createdAt;
   final String? lastViewedAt;
@@ -309,6 +337,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     required this.id,
     required this.name,
     this.iconPath,
+    this.iconData,
     required this.coverColor,
     this.birthday,
     required this.category,
@@ -325,6 +354,9 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || iconPath != null) {
       map['icon_path'] = Variable<String>(iconPath);
+    }
+    if (!nullToAbsent || iconData != null) {
+      map['icon_data'] = Variable<Uint8List>(iconData);
     }
     map['cover_color'] = Variable<int>(coverColor);
     if (!nullToAbsent || birthday != null) {
@@ -352,6 +384,9 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       iconPath: iconPath == null && nullToAbsent
           ? const Value.absent()
           : Value(iconPath),
+      iconData: iconData == null && nullToAbsent
+          ? const Value.absent()
+          : Value(iconData),
       coverColor: Value(coverColor),
       birthday: birthday == null && nullToAbsent
           ? const Value.absent()
@@ -378,6 +413,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       iconPath: serializer.fromJson<String?>(json['iconPath']),
+      iconData: serializer.fromJson<Uint8List?>(json['iconData']),
       coverColor: serializer.fromJson<int>(json['coverColor']),
       birthday: serializer.fromJson<String?>(json['birthday']),
       category: serializer.fromJson<String>(json['category']),
@@ -395,6 +431,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'iconPath': serializer.toJson<String?>(iconPath),
+      'iconData': serializer.toJson<Uint8List?>(iconData),
       'coverColor': serializer.toJson<int>(coverColor),
       'birthday': serializer.toJson<String?>(birthday),
       'category': serializer.toJson<String>(category),
@@ -410,6 +447,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     int? id,
     String? name,
     Value<String?> iconPath = const Value.absent(),
+    Value<Uint8List?> iconData = const Value.absent(),
     int? coverColor,
     Value<String?> birthday = const Value.absent(),
     String? category,
@@ -422,6 +460,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     id: id ?? this.id,
     name: name ?? this.name,
     iconPath: iconPath.present ? iconPath.value : this.iconPath,
+    iconData: iconData.present ? iconData.value : this.iconData,
     coverColor: coverColor ?? this.coverColor,
     birthday: birthday.present ? birthday.value : this.birthday,
     category: category ?? this.category,
@@ -436,6 +475,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       iconPath: data.iconPath.present ? data.iconPath.value : this.iconPath,
+      iconData: data.iconData.present ? data.iconData.value : this.iconData,
       coverColor: data.coverColor.present
           ? data.coverColor.value
           : this.coverColor,
@@ -457,6 +497,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('iconPath: $iconPath, ')
+          ..write('iconData: $iconData, ')
           ..write('coverColor: $coverColor, ')
           ..write('birthday: $birthday, ')
           ..write('category: $category, ')
@@ -474,6 +515,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
     id,
     name,
     iconPath,
+    $driftBlobEquality.hash(iconData),
     coverColor,
     birthday,
     category,
@@ -490,6 +532,7 @@ class Oshi extends DataClass implements Insertable<Oshi> {
           other.id == this.id &&
           other.name == this.name &&
           other.iconPath == this.iconPath &&
+          $driftBlobEquality.equals(other.iconData, this.iconData) &&
           other.coverColor == this.coverColor &&
           other.birthday == this.birthday &&
           other.category == this.category &&
@@ -504,6 +547,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
   final Value<int> id;
   final Value<String> name;
   final Value<String?> iconPath;
+  final Value<Uint8List?> iconData;
   final Value<int> coverColor;
   final Value<String?> birthday;
   final Value<String> category;
@@ -516,6 +560,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.iconPath = const Value.absent(),
+    this.iconData = const Value.absent(),
     this.coverColor = const Value.absent(),
     this.birthday = const Value.absent(),
     this.category = const Value.absent(),
@@ -529,6 +574,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     this.id = const Value.absent(),
     required String name,
     this.iconPath = const Value.absent(),
+    this.iconData = const Value.absent(),
     required int coverColor,
     this.birthday = const Value.absent(),
     required String category,
@@ -545,6 +591,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? iconPath,
+    Expression<Uint8List>? iconData,
     Expression<int>? coverColor,
     Expression<String>? birthday,
     Expression<String>? category,
@@ -558,6 +605,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (iconPath != null) 'icon_path': iconPath,
+      if (iconData != null) 'icon_data': iconData,
       if (coverColor != null) 'cover_color': coverColor,
       if (birthday != null) 'birthday': birthday,
       if (category != null) 'category': category,
@@ -573,6 +621,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     Value<int>? id,
     Value<String>? name,
     Value<String?>? iconPath,
+    Value<Uint8List?>? iconData,
     Value<int>? coverColor,
     Value<String?>? birthday,
     Value<String>? category,
@@ -586,6 +635,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
       id: id ?? this.id,
       name: name ?? this.name,
       iconPath: iconPath ?? this.iconPath,
+      iconData: iconData ?? this.iconData,
       coverColor: coverColor ?? this.coverColor,
       birthday: birthday ?? this.birthday,
       category: category ?? this.category,
@@ -608,6 +658,9 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
     }
     if (iconPath.present) {
       map['icon_path'] = Variable<String>(iconPath.value);
+    }
+    if (iconData.present) {
+      map['icon_data'] = Variable<Uint8List>(iconData.value);
     }
     if (coverColor.present) {
       map['cover_color'] = Variable<int>(coverColor.value);
@@ -642,6 +695,7 @@ class OshisCompanion extends UpdateCompanion<Oshi> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('iconPath: $iconPath, ')
+          ..write('iconData: $iconData, ')
           ..write('coverColor: $coverColor, ')
           ..write('birthday: $birthday, ')
           ..write('category: $category, ')
@@ -681,9 +735,6 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES oshis (id) ON DELETE CASCADE',
-    ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -1282,9 +1333,6 @@ class $EventExpensesTable extends EventExpenses
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES events (id) ON DELETE CASCADE',
-    ),
   );
   static const VerificationMeta _labelMeta = const VerificationMeta('label');
   @override
@@ -1574,9 +1622,6 @@ class $GoodsTable extends Goods with TableInfo<$GoodsTable, Good> {
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES oshis (id) ON DELETE CASCADE',
-    ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -2270,9 +2315,6 @@ class $SavingPlansTable extends SavingPlans
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES oshis (id) ON DELETE CASCADE',
-    ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -2780,9 +2822,6 @@ class $SavingRecordsTable extends SavingRecords
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES saving_plans (id) ON DELETE CASCADE',
-    ),
   );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
@@ -3121,44 +3160,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     savingPlans,
     savingRecords,
   ];
-  @override
-  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'oshis',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('events', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'events',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('event_expenses', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'oshis',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('goods', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'oshis',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('saving_plans', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'saving_plans',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('saving_records', kind: UpdateKind.delete)],
-    ),
-  ]);
 }
 
 typedef $$OshisTableCreateCompanionBuilder =
@@ -3166,6 +3167,7 @@ typedef $$OshisTableCreateCompanionBuilder =
       Value<int> id,
       required String name,
       Value<String?> iconPath,
+      Value<Uint8List?> iconData,
       required int coverColor,
       Value<String?> birthday,
       required String category,
@@ -3180,6 +3182,7 @@ typedef $$OshisTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> name,
       Value<String?> iconPath,
+      Value<Uint8List?> iconData,
       Value<int> coverColor,
       Value<String?> birthday,
       Value<String> category,
@@ -3189,67 +3192,6 @@ typedef $$OshisTableUpdateCompanionBuilder =
       Value<String> createdAt,
       Value<String?> lastViewedAt,
     });
-
-final class $$OshisTableReferences
-    extends BaseReferences<_$AppDatabase, $OshisTable, Oshi> {
-  $$OshisTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$EventsTable, List<Event>> _eventsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.events,
-    aliasName: 'oshis__id__events__oshi_id',
-  );
-
-  $$EventsTableProcessedTableManager get eventsRefs {
-    final manager = $$EventsTableTableManager(
-      $_db,
-      $_db.events,
-    ).filter((f) => f.oshiId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_eventsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$GoodsTable, List<Good>> _goodsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.goods,
-    aliasName: 'oshis__id__goods__oshi_id',
-  );
-
-  $$GoodsTableProcessedTableManager get goodsRefs {
-    final manager = $$GoodsTableTableManager(
-      $_db,
-      $_db.goods,
-    ).filter((f) => f.oshiId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_goodsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$SavingPlansTable, List<SavingPlan>>
-  _savingPlansRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.savingPlans,
-    aliasName: 'oshis__id__saving_plans__oshi_id',
-  );
-
-  $$SavingPlansTableProcessedTableManager get savingPlansRefs {
-    final manager = $$SavingPlansTableTableManager(
-      $_db,
-      $_db.savingPlans,
-    ).filter((f) => f.oshiId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_savingPlansRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
 
 class $$OshisTableFilterComposer extends Composer<_$AppDatabase, $OshisTable> {
   $$OshisTableFilterComposer({
@@ -3271,6 +3213,11 @@ class $$OshisTableFilterComposer extends Composer<_$AppDatabase, $OshisTable> {
 
   ColumnFilters<String> get iconPath => $composableBuilder(
     column: $table.iconPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get iconData => $composableBuilder(
+    column: $table.iconData,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3313,81 +3260,6 @@ class $$OshisTableFilterComposer extends Composer<_$AppDatabase, $OshisTable> {
     column: $table.lastViewedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  Expression<bool> eventsRefs(
-    Expression<bool> Function($$EventsTableFilterComposer f) f,
-  ) {
-    final $$EventsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.events,
-      getReferencedColumn: (t) => t.oshiId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventsTableFilterComposer(
-            $db: $db,
-            $table: $db.events,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> goodsRefs(
-    Expression<bool> Function($$GoodsTableFilterComposer f) f,
-  ) {
-    final $$GoodsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.goods,
-      getReferencedColumn: (t) => t.oshiId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoodsTableFilterComposer(
-            $db: $db,
-            $table: $db.goods,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> savingPlansRefs(
-    Expression<bool> Function($$SavingPlansTableFilterComposer f) f,
-  ) {
-    final $$SavingPlansTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.savingPlans,
-      getReferencedColumn: (t) => t.oshiId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingPlansTableFilterComposer(
-            $db: $db,
-            $table: $db.savingPlans,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$OshisTableOrderingComposer
@@ -3411,6 +3283,11 @@ class $$OshisTableOrderingComposer
 
   ColumnOrderings<String> get iconPath => $composableBuilder(
     column: $table.iconPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get iconData => $composableBuilder(
+    column: $table.iconData,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3473,6 +3350,9 @@ class $$OshisTableAnnotationComposer
   GeneratedColumn<String> get iconPath =>
       $composableBuilder(column: $table.iconPath, builder: (column) => column);
 
+  GeneratedColumn<Uint8List> get iconData =>
+      $composableBuilder(column: $table.iconData, builder: (column) => column);
+
   GeneratedColumn<int> get coverColor => $composableBuilder(
     column: $table.coverColor,
     builder: (column) => column,
@@ -3500,81 +3380,6 @@ class $$OshisTableAnnotationComposer
     column: $table.lastViewedAt,
     builder: (column) => column,
   );
-
-  Expression<T> eventsRefs<T extends Object>(
-    Expression<T> Function($$EventsTableAnnotationComposer a) f,
-  ) {
-    final $$EventsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.events,
-      getReferencedColumn: (t) => t.oshiId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.events,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> goodsRefs<T extends Object>(
-    Expression<T> Function($$GoodsTableAnnotationComposer a) f,
-  ) {
-    final $$GoodsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.goods,
-      getReferencedColumn: (t) => t.oshiId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoodsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.goods,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> savingPlansRefs<T extends Object>(
-    Expression<T> Function($$SavingPlansTableAnnotationComposer a) f,
-  ) {
-    final $$SavingPlansTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.savingPlans,
-      getReferencedColumn: (t) => t.oshiId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingPlansTableAnnotationComposer(
-            $db: $db,
-            $table: $db.savingPlans,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$OshisTableTableManager
@@ -3588,13 +3393,9 @@ class $$OshisTableTableManager
           $$OshisTableAnnotationComposer,
           $$OshisTableCreateCompanionBuilder,
           $$OshisTableUpdateCompanionBuilder,
-          (Oshi, $$OshisTableReferences),
+          (Oshi, BaseReferences<_$AppDatabase, $OshisTable, Oshi>),
           Oshi,
-          PrefetchHooks Function({
-            bool eventsRefs,
-            bool goodsRefs,
-            bool savingPlansRefs,
-          })
+          PrefetchHooks Function()
         > {
   $$OshisTableTableManager(_$AppDatabase db, $OshisTable table)
     : super(
@@ -3612,6 +3413,7 @@ class $$OshisTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> iconPath = const Value.absent(),
+                Value<Uint8List?> iconData = const Value.absent(),
                 Value<int> coverColor = const Value.absent(),
                 Value<String?> birthday = const Value.absent(),
                 Value<String> category = const Value.absent(),
@@ -3624,6 +3426,7 @@ class $$OshisTableTableManager
                 id: id,
                 name: name,
                 iconPath: iconPath,
+                iconData: iconData,
                 coverColor: coverColor,
                 birthday: birthday,
                 category: category,
@@ -3638,6 +3441,7 @@ class $$OshisTableTableManager
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<String?> iconPath = const Value.absent(),
+                Value<Uint8List?> iconData = const Value.absent(),
                 required int coverColor,
                 Value<String?> birthday = const Value.absent(),
                 required String category,
@@ -3650,6 +3454,7 @@ class $$OshisTableTableManager
                 id: id,
                 name: name,
                 iconPath: iconPath,
+                iconData: iconData,
                 coverColor: coverColor,
                 birthday: birthday,
                 category: category,
@@ -3660,78 +3465,9 @@ class $$OshisTableTableManager
                 lastViewedAt: lastViewedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) =>
-                    (e.readTable(table), $$OshisTableReferences(db, table, e)),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback:
-              ({
-                eventsRefs = false,
-                goodsRefs = false,
-                savingPlansRefs = false,
-              }) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (eventsRefs) db.events,
-                    if (goodsRefs) db.goods,
-                    if (savingPlansRefs) db.savingPlans,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (eventsRefs)
-                        await $_getPrefetchedData<Oshi, $OshisTable, Event>(
-                          currentTable: table,
-                          referencedTable: $$OshisTableReferences
-                              ._eventsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$OshisTableReferences(db, table, p0).eventsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.oshiId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (goodsRefs)
-                        await $_getPrefetchedData<Oshi, $OshisTable, Good>(
-                          currentTable: table,
-                          referencedTable: $$OshisTableReferences
-                              ._goodsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$OshisTableReferences(db, table, p0).goodsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.oshiId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (savingPlansRefs)
-                        await $_getPrefetchedData<
-                          Oshi,
-                          $OshisTable,
-                          SavingPlan
-                        >(
-                          currentTable: table,
-                          referencedTable: $$OshisTableReferences
-                              ._savingPlansRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$OshisTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).savingPlansRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.oshiId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -3746,13 +3482,9 @@ typedef $$OshisTableProcessedTableManager =
       $$OshisTableAnnotationComposer,
       $$OshisTableCreateCompanionBuilder,
       $$OshisTableUpdateCompanionBuilder,
-      (Oshi, $$OshisTableReferences),
+      (Oshi, BaseReferences<_$AppDatabase, $OshisTable, Oshi>),
       Oshi,
-      PrefetchHooks Function({
-        bool eventsRefs,
-        bool goodsRefs,
-        bool savingPlansRefs,
-      })
+      PrefetchHooks Function()
     >;
 typedef $$EventsTableCreateCompanionBuilder =
     EventsCompanion Function({
@@ -3781,46 +3513,6 @@ typedef $$EventsTableUpdateCompanionBuilder =
       Value<String> createdAt,
     });
 
-final class $$EventsTableReferences
-    extends BaseReferences<_$AppDatabase, $EventsTable, Event> {
-  $$EventsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $OshisTable _oshiIdTable(_$AppDatabase db) =>
-      db.oshis.createAlias('events__oshi_id__oshis__id');
-
-  $$OshisTableProcessedTableManager get oshiId {
-    final $_column = $_itemColumn<int>('oshi_id')!;
-
-    final manager = $$OshisTableTableManager(
-      $_db,
-      $_db.oshis,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_oshiIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static MultiTypedResultKey<$EventExpensesTable, List<EventExpense>>
-  _eventExpensesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.eventExpenses,
-    aliasName: 'events__id__event_expenses__event_id',
-  );
-
-  $$EventExpensesTableProcessedTableManager get eventExpensesRefs {
-    final manager = $$EventExpensesTableTableManager(
-      $_db,
-      $_db.eventExpenses,
-    ).filter((f) => f.eventId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_eventExpensesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
 class $$EventsTableFilterComposer
     extends Composer<_$AppDatabase, $EventsTable> {
   $$EventsTableFilterComposer({
@@ -3832,6 +3524,11 @@ class $$EventsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get oshiId => $composableBuilder(
+    column: $table.oshiId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3874,54 +3571,6 @@ class $$EventsTableFilterComposer
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$OshisTableFilterComposer get oshiId {
-    final $$OshisTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableFilterComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<bool> eventExpensesRefs(
-    Expression<bool> Function($$EventExpensesTableFilterComposer f) f,
-  ) {
-    final $$EventExpensesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.eventExpenses,
-      getReferencedColumn: (t) => t.eventId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventExpensesTableFilterComposer(
-            $db: $db,
-            $table: $db.eventExpenses,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$EventsTableOrderingComposer
@@ -3935,6 +3584,11 @@ class $$EventsTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get oshiId => $composableBuilder(
+    column: $table.oshiId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3977,29 +3631,6 @@ class $$EventsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$OshisTableOrderingComposer get oshiId {
-    final $$OshisTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableOrderingComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$EventsTableAnnotationComposer
@@ -4013,6 +3644,9 @@ class $$EventsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get oshiId =>
+      $composableBuilder(column: $table.oshiId, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -4041,54 +3675,6 @@ class $$EventsTableAnnotationComposer
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  $$OshisTableAnnotationComposer get oshiId {
-    final $$OshisTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableAnnotationComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<T> eventExpensesRefs<T extends Object>(
-    Expression<T> Function($$EventExpensesTableAnnotationComposer a) f,
-  ) {
-    final $$EventExpensesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.eventExpenses,
-      getReferencedColumn: (t) => t.eventId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventExpensesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.eventExpenses,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$EventsTableTableManager
@@ -4102,9 +3688,9 @@ class $$EventsTableTableManager
           $$EventsTableAnnotationComposer,
           $$EventsTableCreateCompanionBuilder,
           $$EventsTableUpdateCompanionBuilder,
-          (Event, $$EventsTableReferences),
+          (Event, BaseReferences<_$AppDatabase, $EventsTable, Event>),
           Event,
-          PrefetchHooks Function({bool oshiId, bool eventExpensesRefs})
+          PrefetchHooks Function()
         > {
   $$EventsTableTableManager(_$AppDatabase db, $EventsTable table)
     : super(
@@ -4166,73 +3752,9 @@ class $$EventsTableTableManager
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) =>
-                    (e.readTable(table), $$EventsTableReferences(db, table, e)),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({oshiId = false, eventExpensesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (eventExpensesRefs) db.eventExpenses,
-              ],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (oshiId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.oshiId,
-                                referencedTable: $$EventsTableReferences
-                                    ._oshiIdTable(db),
-                                referencedColumn: $$EventsTableReferences
-                                    ._oshiIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (eventExpensesRefs)
-                    await $_getPrefetchedData<
-                      Event,
-                      $EventsTable,
-                      EventExpense
-                    >(
-                      currentTable: table,
-                      referencedTable: $$EventsTableReferences
-                          ._eventExpensesRefsTable(db),
-                      managerFromTypedResult: (p0) => $$EventsTableReferences(
-                        db,
-                        table,
-                        p0,
-                      ).eventExpensesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.eventId == item.id),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -4247,9 +3769,9 @@ typedef $$EventsTableProcessedTableManager =
       $$EventsTableAnnotationComposer,
       $$EventsTableCreateCompanionBuilder,
       $$EventsTableUpdateCompanionBuilder,
-      (Event, $$EventsTableReferences),
+      (Event, BaseReferences<_$AppDatabase, $EventsTable, Event>),
       Event,
-      PrefetchHooks Function({bool oshiId, bool eventExpensesRefs})
+      PrefetchHooks Function()
     >;
 typedef $$EventExpensesTableCreateCompanionBuilder =
     EventExpensesCompanion Function({
@@ -4266,32 +3788,6 @@ typedef $$EventExpensesTableUpdateCompanionBuilder =
       Value<int> amount,
     });
 
-final class $$EventExpensesTableReferences
-    extends BaseReferences<_$AppDatabase, $EventExpensesTable, EventExpense> {
-  $$EventExpensesTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $EventsTable _eventIdTable(_$AppDatabase db) =>
-      db.events.createAlias('event_expenses__event_id__events__id');
-
-  $$EventsTableProcessedTableManager get eventId {
-    final $_column = $_itemColumn<int>('event_id')!;
-
-    final manager = $$EventsTableTableManager(
-      $_db,
-      $_db.events,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_eventIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
 class $$EventExpensesTableFilterComposer
     extends Composer<_$AppDatabase, $EventExpensesTable> {
   $$EventExpensesTableFilterComposer({
@@ -4306,6 +3802,11 @@ class $$EventExpensesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get label => $composableBuilder(
     column: $table.label,
     builder: (column) => ColumnFilters(column),
@@ -4315,29 +3816,6 @@ class $$EventExpensesTableFilterComposer
     column: $table.amount,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$EventsTableFilterComposer get eventId {
-    final $$EventsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.eventId,
-      referencedTable: $db.events,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventsTableFilterComposer(
-            $db: $db,
-            $table: $db.events,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$EventExpensesTableOrderingComposer
@@ -4354,6 +3832,11 @@ class $$EventExpensesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get label => $composableBuilder(
     column: $table.label,
     builder: (column) => ColumnOrderings(column),
@@ -4363,29 +3846,6 @@ class $$EventExpensesTableOrderingComposer
     column: $table.amount,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$EventsTableOrderingComposer get eventId {
-    final $$EventsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.eventId,
-      referencedTable: $db.events,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventsTableOrderingComposer(
-            $db: $db,
-            $table: $db.events,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$EventExpensesTableAnnotationComposer
@@ -4400,34 +3860,14 @@ class $$EventExpensesTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<int> get eventId =>
+      $composableBuilder(column: $table.eventId, builder: (column) => column);
+
   GeneratedColumn<String> get label =>
       $composableBuilder(column: $table.label, builder: (column) => column);
 
   GeneratedColumn<int> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
-
-  $$EventsTableAnnotationComposer get eventId {
-    final $$EventsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.eventId,
-      referencedTable: $db.events,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.events,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$EventExpensesTableTableManager
@@ -4441,9 +3881,12 @@ class $$EventExpensesTableTableManager
           $$EventExpensesTableAnnotationComposer,
           $$EventExpensesTableCreateCompanionBuilder,
           $$EventExpensesTableUpdateCompanionBuilder,
-          (EventExpense, $$EventExpensesTableReferences),
+          (
+            EventExpense,
+            BaseReferences<_$AppDatabase, $EventExpensesTable, EventExpense>,
+          ),
           EventExpense,
-          PrefetchHooks Function({bool eventId})
+          PrefetchHooks Function()
         > {
   $$EventExpensesTableTableManager(_$AppDatabase db, $EventExpensesTable table)
     : super(
@@ -4481,54 +3924,9 @@ class $$EventExpensesTableTableManager
                 amount: amount,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$EventExpensesTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({eventId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (eventId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.eventId,
-                                referencedTable: $$EventExpensesTableReferences
-                                    ._eventIdTable(db),
-                                referencedColumn: $$EventExpensesTableReferences
-                                    ._eventIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -4543,9 +3941,12 @@ typedef $$EventExpensesTableProcessedTableManager =
       $$EventExpensesTableAnnotationComposer,
       $$EventExpensesTableCreateCompanionBuilder,
       $$EventExpensesTableUpdateCompanionBuilder,
-      (EventExpense, $$EventExpensesTableReferences),
+      (
+        EventExpense,
+        BaseReferences<_$AppDatabase, $EventExpensesTable, EventExpense>,
+      ),
       EventExpense,
-      PrefetchHooks Function({bool eventId})
+      PrefetchHooks Function()
     >;
 typedef $$GoodsTableCreateCompanionBuilder =
     GoodsCompanion Function({
@@ -4578,28 +3979,6 @@ typedef $$GoodsTableUpdateCompanionBuilder =
       Value<String> createdAt,
     });
 
-final class $$GoodsTableReferences
-    extends BaseReferences<_$AppDatabase, $GoodsTable, Good> {
-  $$GoodsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $OshisTable _oshiIdTable(_$AppDatabase db) =>
-      db.oshis.createAlias('goods__oshi_id__oshis__id');
-
-  $$OshisTableProcessedTableManager get oshiId {
-    final $_column = $_itemColumn<int>('oshi_id')!;
-
-    final manager = $$OshisTableTableManager(
-      $_db,
-      $_db.oshis,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_oshiIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
 class $$GoodsTableFilterComposer extends Composer<_$AppDatabase, $GoodsTable> {
   $$GoodsTableFilterComposer({
     required super.$db,
@@ -4610,6 +3989,11 @@ class $$GoodsTableFilterComposer extends Composer<_$AppDatabase, $GoodsTable> {
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get oshiId => $composableBuilder(
+    column: $table.oshiId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4662,29 +4046,6 @@ class $$GoodsTableFilterComposer extends Composer<_$AppDatabase, $GoodsTable> {
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$OshisTableFilterComposer get oshiId {
-    final $$OshisTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableFilterComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$GoodsTableOrderingComposer
@@ -4698,6 +4059,11 @@ class $$GoodsTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get oshiId => $composableBuilder(
+    column: $table.oshiId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4750,29 +4116,6 @@ class $$GoodsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$OshisTableOrderingComposer get oshiId {
-    final $$OshisTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableOrderingComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$GoodsTableAnnotationComposer
@@ -4786,6 +4129,9 @@ class $$GoodsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get oshiId =>
+      $composableBuilder(column: $table.oshiId, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -4820,29 +4166,6 @@ class $$GoodsTableAnnotationComposer
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  $$OshisTableAnnotationComposer get oshiId {
-    final $$OshisTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableAnnotationComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$GoodsTableTableManager
@@ -4856,9 +4179,9 @@ class $$GoodsTableTableManager
           $$GoodsTableAnnotationComposer,
           $$GoodsTableCreateCompanionBuilder,
           $$GoodsTableUpdateCompanionBuilder,
-          (Good, $$GoodsTableReferences),
+          (Good, BaseReferences<_$AppDatabase, $GoodsTable, Good>),
           Good,
-          PrefetchHooks Function({bool oshiId})
+          PrefetchHooks Function()
         > {
   $$GoodsTableTableManager(_$AppDatabase db, $GoodsTable table)
     : super(
@@ -4928,52 +4251,9 @@ class $$GoodsTableTableManager
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) =>
-                    (e.readTable(table), $$GoodsTableReferences(db, table, e)),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({oshiId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (oshiId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.oshiId,
-                                referencedTable: $$GoodsTableReferences
-                                    ._oshiIdTable(db),
-                                referencedColumn: $$GoodsTableReferences
-                                    ._oshiIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -4988,9 +4268,9 @@ typedef $$GoodsTableProcessedTableManager =
       $$GoodsTableAnnotationComposer,
       $$GoodsTableCreateCompanionBuilder,
       $$GoodsTableUpdateCompanionBuilder,
-      (Good, $$GoodsTableReferences),
+      (Good, BaseReferences<_$AppDatabase, $GoodsTable, Good>),
       Good,
-      PrefetchHooks Function({bool oshiId})
+      PrefetchHooks Function()
     >;
 typedef $$SavingPlansTableCreateCompanionBuilder =
     SavingPlansCompanion Function({
@@ -5015,46 +4295,6 @@ typedef $$SavingPlansTableUpdateCompanionBuilder =
       Value<String> createdAt,
     });
 
-final class $$SavingPlansTableReferences
-    extends BaseReferences<_$AppDatabase, $SavingPlansTable, SavingPlan> {
-  $$SavingPlansTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $OshisTable _oshiIdTable(_$AppDatabase db) =>
-      db.oshis.createAlias('saving_plans__oshi_id__oshis__id');
-
-  $$OshisTableProcessedTableManager get oshiId {
-    final $_column = $_itemColumn<int>('oshi_id')!;
-
-    final manager = $$OshisTableTableManager(
-      $_db,
-      $_db.oshis,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_oshiIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static MultiTypedResultKey<$SavingRecordsTable, List<SavingRecord>>
-  _savingRecordsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.savingRecords,
-    aliasName: 'saving_plans__id__saving_records__plan_id',
-  );
-
-  $$SavingRecordsTableProcessedTableManager get savingRecordsRefs {
-    final manager = $$SavingRecordsTableTableManager(
-      $_db,
-      $_db.savingRecords,
-    ).filter((f) => f.planId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_savingRecordsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
 class $$SavingPlansTableFilterComposer
     extends Composer<_$AppDatabase, $SavingPlansTable> {
   $$SavingPlansTableFilterComposer({
@@ -5066,6 +4306,11 @@ class $$SavingPlansTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get oshiId => $composableBuilder(
+    column: $table.oshiId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5098,54 +4343,6 @@ class $$SavingPlansTableFilterComposer
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$OshisTableFilterComposer get oshiId {
-    final $$OshisTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableFilterComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<bool> savingRecordsRefs(
-    Expression<bool> Function($$SavingRecordsTableFilterComposer f) f,
-  ) {
-    final $$SavingRecordsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.savingRecords,
-      getReferencedColumn: (t) => t.planId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingRecordsTableFilterComposer(
-            $db: $db,
-            $table: $db.savingRecords,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$SavingPlansTableOrderingComposer
@@ -5159,6 +4356,11 @@ class $$SavingPlansTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get oshiId => $composableBuilder(
+    column: $table.oshiId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5191,29 +4393,6 @@ class $$SavingPlansTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$OshisTableOrderingComposer get oshiId {
-    final $$OshisTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableOrderingComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$SavingPlansTableAnnotationComposer
@@ -5227,6 +4406,9 @@ class $$SavingPlansTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get oshiId =>
+      $composableBuilder(column: $table.oshiId, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -5249,54 +4431,6 @@ class $$SavingPlansTableAnnotationComposer
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  $$OshisTableAnnotationComposer get oshiId {
-    final $$OshisTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.oshiId,
-      referencedTable: $db.oshis,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$OshisTableAnnotationComposer(
-            $db: $db,
-            $table: $db.oshis,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<T> savingRecordsRefs<T extends Object>(
-    Expression<T> Function($$SavingRecordsTableAnnotationComposer a) f,
-  ) {
-    final $$SavingRecordsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.savingRecords,
-      getReferencedColumn: (t) => t.planId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingRecordsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.savingRecords,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$SavingPlansTableTableManager
@@ -5310,9 +4444,12 @@ class $$SavingPlansTableTableManager
           $$SavingPlansTableAnnotationComposer,
           $$SavingPlansTableCreateCompanionBuilder,
           $$SavingPlansTableUpdateCompanionBuilder,
-          (SavingPlan, $$SavingPlansTableReferences),
+          (
+            SavingPlan,
+            BaseReferences<_$AppDatabase, $SavingPlansTable, SavingPlan>,
+          ),
           SavingPlan,
-          PrefetchHooks Function({bool oshiId, bool savingRecordsRefs})
+          PrefetchHooks Function()
         > {
   $$SavingPlansTableTableManager(_$AppDatabase db, $SavingPlansTable table)
     : super(
@@ -5366,76 +4503,9 @@ class $$SavingPlansTableTableManager
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$SavingPlansTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({oshiId = false, savingRecordsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (savingRecordsRefs) db.savingRecords,
-              ],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (oshiId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.oshiId,
-                                referencedTable: $$SavingPlansTableReferences
-                                    ._oshiIdTable(db),
-                                referencedColumn: $$SavingPlansTableReferences
-                                    ._oshiIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (savingRecordsRefs)
-                    await $_getPrefetchedData<
-                      SavingPlan,
-                      $SavingPlansTable,
-                      SavingRecord
-                    >(
-                      currentTable: table,
-                      referencedTable: $$SavingPlansTableReferences
-                          ._savingRecordsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$SavingPlansTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).savingRecordsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.planId == item.id),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -5450,9 +4520,12 @@ typedef $$SavingPlansTableProcessedTableManager =
       $$SavingPlansTableAnnotationComposer,
       $$SavingPlansTableCreateCompanionBuilder,
       $$SavingPlansTableUpdateCompanionBuilder,
-      (SavingPlan, $$SavingPlansTableReferences),
+      (
+        SavingPlan,
+        BaseReferences<_$AppDatabase, $SavingPlansTable, SavingPlan>,
+      ),
       SavingPlan,
-      PrefetchHooks Function({bool oshiId, bool savingRecordsRefs})
+      PrefetchHooks Function()
     >;
 typedef $$SavingRecordsTableCreateCompanionBuilder =
     SavingRecordsCompanion Function({
@@ -5471,32 +4544,6 @@ typedef $$SavingRecordsTableUpdateCompanionBuilder =
       Value<String> createdAt,
     });
 
-final class $$SavingRecordsTableReferences
-    extends BaseReferences<_$AppDatabase, $SavingRecordsTable, SavingRecord> {
-  $$SavingRecordsTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $SavingPlansTable _planIdTable(_$AppDatabase db) =>
-      db.savingPlans.createAlias('saving_records__plan_id__saving_plans__id');
-
-  $$SavingPlansTableProcessedTableManager get planId {
-    final $_column = $_itemColumn<int>('plan_id')!;
-
-    final manager = $$SavingPlansTableTableManager(
-      $_db,
-      $_db.savingPlans,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_planIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
 class $$SavingRecordsTableFilterComposer
     extends Composer<_$AppDatabase, $SavingRecordsTable> {
   $$SavingRecordsTableFilterComposer({
@@ -5508,6 +4555,11 @@ class $$SavingRecordsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get planId => $composableBuilder(
+    column: $table.planId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5525,29 +4577,6 @@ class $$SavingRecordsTableFilterComposer
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$SavingPlansTableFilterComposer get planId {
-    final $$SavingPlansTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.planId,
-      referencedTable: $db.savingPlans,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingPlansTableFilterComposer(
-            $db: $db,
-            $table: $db.savingPlans,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$SavingRecordsTableOrderingComposer
@@ -5561,6 +4590,11 @@ class $$SavingRecordsTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get planId => $composableBuilder(
+    column: $table.planId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5578,29 +4612,6 @@ class $$SavingRecordsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$SavingPlansTableOrderingComposer get planId {
-    final $$SavingPlansTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.planId,
-      referencedTable: $db.savingPlans,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingPlansTableOrderingComposer(
-            $db: $db,
-            $table: $db.savingPlans,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$SavingRecordsTableAnnotationComposer
@@ -5615,6 +4626,9 @@ class $$SavingRecordsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<int> get planId =>
+      $composableBuilder(column: $table.planId, builder: (column) => column);
+
   GeneratedColumn<String> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
 
@@ -5623,29 +4637,6 @@ class $$SavingRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  $$SavingPlansTableAnnotationComposer get planId {
-    final $$SavingPlansTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.planId,
-      referencedTable: $db.savingPlans,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SavingPlansTableAnnotationComposer(
-            $db: $db,
-            $table: $db.savingPlans,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$SavingRecordsTableTableManager
@@ -5659,9 +4650,12 @@ class $$SavingRecordsTableTableManager
           $$SavingRecordsTableAnnotationComposer,
           $$SavingRecordsTableCreateCompanionBuilder,
           $$SavingRecordsTableUpdateCompanionBuilder,
-          (SavingRecord, $$SavingRecordsTableReferences),
+          (
+            SavingRecord,
+            BaseReferences<_$AppDatabase, $SavingRecordsTable, SavingRecord>,
+          ),
           SavingRecord,
-          PrefetchHooks Function({bool planId})
+          PrefetchHooks Function()
         > {
   $$SavingRecordsTableTableManager(_$AppDatabase db, $SavingRecordsTable table)
     : super(
@@ -5703,54 +4697,9 @@ class $$SavingRecordsTableTableManager
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$SavingRecordsTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({planId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (planId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.planId,
-                                referencedTable: $$SavingRecordsTableReferences
-                                    ._planIdTable(db),
-                                referencedColumn: $$SavingRecordsTableReferences
-                                    ._planIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -5765,9 +4714,12 @@ typedef $$SavingRecordsTableProcessedTableManager =
       $$SavingRecordsTableAnnotationComposer,
       $$SavingRecordsTableCreateCompanionBuilder,
       $$SavingRecordsTableUpdateCompanionBuilder,
-      (SavingRecord, $$SavingRecordsTableReferences),
+      (
+        SavingRecord,
+        BaseReferences<_$AppDatabase, $SavingRecordsTable, SavingRecord>,
+      ),
       SavingRecord,
-      PrefetchHooks Function({bool planId})
+      PrefetchHooks Function()
     >;
 
 class $AppDatabaseManager {
